@@ -36,17 +36,27 @@ enum IdentifyType { CHAR, SHORT, INT, LONG, LONG_LONG, ARRAY, FUNCTION };
 const string delimiter[] = {
     ",", ";", "(", ")", "{", "}", "[",  "]", "<",  "<=", ">", ">=", "==", "!==",
     "=", "~", "!", "?", ":", "|", "||", "&", "&&", "+",  "-", "*",  "/",  "%"};
+const char dlmt[] = ",;(){}[]<>=!~?:|&+-*/%";
 void error() {}
+char lineBuff[4096];
 int rowNum, culNum;
+vector<string>identifyTable;
+vector<string>constNumberTable;
+bool matching;
+bool isDelimiter(const char c){
+    for (int i = (sizeof dlmt) / (sizeof 'a'); i >= 0;i++)
+        if (c == dlmt[i])return true;
+    return false;
+}
 bool isDigital(const char c){ return c >= '0' && c <= '9';}
 bool isLetter(const char c){ return (c >= 'a' && c <='z') || (c >= 'A' && c <='Z');}
 bool isBlank(const char c) { return c == '\n' || c == '\t' || c == ' ';}
 /**
  * @description: 返回指定字符在 delimiter 表中的位置
- * @param {const char} c 待查找字符
+ * @param {const string} c 待查找字符
  * @return {*} 指定字符在 delimiter 表中的位置，若不存在，返回-1
  */
-int getDelimiterIndex(const char c){ 
+int getDelimiterIndex(const string c){ 
     int index = -1;
     for(int i = 0; i <= 27; i++){
         if (delimiter[i] == c){
@@ -68,22 +78,52 @@ int getReservedWordsIndex(const string word){
     if (index < WORDS_LEN)index = reservedWords[index] == word ? index : -1;
     return index;
 }
+string tryReadIdentify(){
+    int index = culNum;
+    string buff = "";
+    while(lineBuff[culNum] == '_' || isLetter(lineBuff[culNum])){
+        buff += lineBuff[culNum++];
+    }
+    while(lineBuff[culNum] == '_' || isLetter(lineBuff[culNum]) || isDigital(lineBuff[culNum])){
+        buff += lineBuff[culNum++];
+    }
+    if(isDelimiter(lineBuff[culNum]) || isBlank(lineBuff[culNum])){
+        matching = true;
+        culNum--;
+    }else{
+        culNum = index;
+        matching = false;
+        buff = "";
+    }
+    return buff;
+};
+void handleMatchingIdentify(string identify){
+    int index = getReservedWordsIndex(identify);
+    if (index == -1){
+
+    }
+}
 int main(int arc, const char *argv[]) {
     ifstream inFile;
     // 默认读取test.c
-    // if (arc == 2){
-    //     inFile.open(argv[1], ios::in);
-    // }else {
-    //     inFile.open("./test.c", ios::in);
-    // }
-    inFile.open("D:\\my_cpp_workspace\\compilers\\test.c", ios::in);
+    if (arc == 2){
+        inFile.open(argv[1], ios::in);
+    }else {
+        inFile.open("D:\\my_cpp_workspace\\compilers\\test.c", ios::in);
+    }
     if (!inFile.is_open()) {
         cout << "读取指定文件失败" << endl;
         return 0;
     }
-    char lineBuff[4096];
+    string wordBuff;
     while (inFile.getline(lineBuff, sizeof lineBuff)) {
-        cout << rowNum++ << "\t" << lineBuff << endl;
+        // cout << rowNum++ << "\t" << lineBuff << endl;
+        culNum = 0, matching = false;
+        while(lineBuff[culNum] != '\0'){
+            if (isLetter(lineBuff[culNum]) || lineBuff[culNum] == '_'){
+                wordBuff = tryReadIdentify();
+            }
+        }
     }
 
     inFile.clear();
