@@ -11,10 +11,13 @@
 #include <vector>
 using namespace std;
 struct Result {
+    // 识别的单词或符号
     string word;
+    // 类别号，内码
     int identifyId, internalCode;
+    Result(string wd, int idtfid, int incode = -1){ word = wd, identifyId = idtfid, internalCode = incode;}
 };
-
+vector<Result>ansSet;
 // 保留字 有序列表，方便于折半查找
 const string reservedWords[] = {
     "auto",     "break",  "case",    "char",   "const",    "continue",
@@ -66,6 +69,21 @@ int getDelimiterIndex(const string c){
     }
     return index;
 }
+/**
+ * @description: 查询指定变量在变量表中的位置
+ * @param {const string} identify
+ * @return {*} 指定变量在变量表中的位置，不存在时返回-1
+ */
+int getIdentifyIndex(const string identify){
+    int index = -1;
+    for (int i = 0; i < identifyTable.size(); i++){
+        if (identifyTable[i] == identify){
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
 // 预处理
 void preprocess(){}
 /**
@@ -99,8 +117,18 @@ string tryReadIdentify(){
 };
 void handleMatchingIdentify(string identify){
     int index = getReservedWordsIndex(identify);
+    // 不是保留字
     if (index == -1){
-
+        // 获取内码
+        index = getIdentifyIndex(identify);
+        // 新的变量
+        if (index == -1){
+            identifyTable.push_back(identify);
+            index = identifyTable.size() - 1;
+        }
+        ansSet.push_back(Result(identify, IDENTIFY_ID, index));
+    }else {
+        ansSet.push_back(Result(identify, index));
     }
 }
 int main(int arc, const char *argv[]) {
