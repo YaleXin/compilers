@@ -262,6 +262,16 @@ double tryReadNumber(){
     }
     return sum;
 }
+int tryReadChar(){
+    int index = colNum;
+    int ascllCode = -1;
+    if (lineBuff[colNum] == '\'') {
+
+    } else {
+        matching = false;
+    }
+    return ascllCode;
+}
 bool handleDelimiter(const string delimiter){
     int index = getDelimiterIndex(delimiter);
     if (index == -1)return false;
@@ -350,7 +360,7 @@ int main(int arc, const char *argv[]) {
                 wordBuff = tryReadIdentify();
                 if (matching){
                     handleMatchingIdentify(wordBuff);
-                }else{
+                } else {
                     error("idetify analyze failed.");
                     return 0;
                 }
