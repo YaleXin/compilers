@@ -296,7 +296,7 @@ void saveIdentify(){
     ofstream outFile;
     outFile.open("identify.txt", ios::out | ios::trunc);
     if (!outFile.is_open()) {
-        cout << "读取指定文件失败" << endl;
+        cout << "failed to read file" << endl;
         return ;
     }
     int size = identifyTable.size();
@@ -308,7 +308,7 @@ void saveNumberConstant(){
     ofstream outFile;
     outFile.open("number.txt", ios::out | ios::trunc);
     if (!outFile.is_open()) {
-        cout << "读取指定文件失败" << endl;
+        cout << "failed to read file" << endl;
         return ;
     }
     int size = dynamicNumbers.size();
@@ -338,7 +338,7 @@ int main(int arc, const char *argv[]) {
         inFile.open("D:\\my_cpp_workspace\\compilers\\test.c", ios::in);
     }
     if (!inFile.is_open()) {
-        cout << "读取指定文件失败" << endl;
+        cout << "failed to read file" << endl;
         return 0;
     }
     string wordBuff;
