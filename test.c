@@ -1,6 +1,6 @@
 void main(){
-    int abv;
+    int abv = 77;
     int _s5 = abv;
-    double gggg;
+    double gggg = 99.999;
     return ;
 }
