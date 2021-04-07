@@ -3,6 +3,8 @@
  * @Email       : 181303209@yzu.edu.cn
  * @LastEditors : YaleXin
 -->
+## 说明
+`xinCpl.cpp`是编译器顶层文件
 ## 总体设计
 0-31：保留字
 32：标识符
