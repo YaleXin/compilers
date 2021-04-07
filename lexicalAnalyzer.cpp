@@ -263,12 +263,60 @@ double tryReadNumber(){
     return sum;
 }
 int tryReadChar(){
-    int index = colNum;
+    int index = colNum++;
     int ascllCode = -1;
-    if (lineBuff[colNum] == '\'') {
-
+    // 带转义字符的
+    if (lineBuff[colNum] == '\\'){
+        colNum++;
+        switch(lineBuff[colNum++]){
+            case 'o':
+                ascllCode = 0;
+                break;
+            case 'n':
+                ascllCode = 0;
+                break;
+            case 'r':
+                ascllCode = 0;
+                break;
+            case 't':
+                ascllCode = 0;
+                break;
+            case 'v':
+                ascllCode = 0;
+                break;
+            case 'a':
+                ascllCode = 0;
+                break;
+            case 'b':
+                ascllCode = 0;
+                break;
+            case 'f':
+                ascllCode = 0;
+                break;
+            case '\'':
+                ascllCode = 0;
+                break;
+            case '\"':
+                ascllCode = 0;
+                break;
+            case '\\':
+                ascllCode = 0;
+                break;
+            case '\?':
+                ascllCode = 0;
+                break;
+            default:
+                ascllCode = -1;
+        }
     } else {
+        ascllCode = lineBuff[colNum++];
+    }
+    if (lineBuff[colNum++] == '\''){
+            matching = true;
+    } else {
+        ascllCode = -1;
         matching = false;
+        colNum = index;
     }
     return ascllCode;
 }
@@ -293,6 +341,10 @@ void handleNumber(const double num){
         dynamicNumbers.push_back(d);
         ansSet.push_back(Result(to_string(num), REAL_CONSTANTS_ID, dynamicNumbers.size() - 1));
     }
+}
+void handleChar(const int ascllCode){
+    string char2string(1, ascllCode);
+    ansSet.push_back(Result(char2string, CHAR_CONSTANTS_ID, ascllCode));
 }
 void print(){
     int len = ansSet.size();
@@ -377,8 +429,17 @@ int main(int arc, const char *argv[]) {
                     error("number analyze failed.");
                     return 0;
                 }
+            }else if (lineBuff[colNum] == '\''){
+                int ascllCode = tryReadChar();
+                if (matching && ascllCode != -1){
+                    handleChar(ascllCode);
+                } else {
+                    error("char analyze failed.");
+                    return 0;
+                }
             }else if(isBlank(lineBuff[colNum]))colNum++;
         }
+        rowNum++;
     }
     print();
     if (SAVE_TO_FILE)saveToFile();
