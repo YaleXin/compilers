@@ -2,3 +2,8 @@ main
 abv
 _s5
 gggg
+a
+ao
+an
+at
+stringTest

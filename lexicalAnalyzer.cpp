@@ -41,27 +41,10 @@ const int STRING_CONSTANTS_ID = 36;
 const int DELIMITER_ID = 37;
 // 标识符类型
 enum IdentifyType { T_CHAR, T_SHORT, T_INT, T_LONG, LONG_LONG, T_DOUBLE, T_FLOAT, T_ARRAY, T_FUNCTION };
-// 动态生成的数字常量表
-struct DynamicNumber{
-    void *content;
-    IdentifyType type;
-    DynamicNumber(IdentifyType t, double num){
-        type = t;
-        switch(t){
-            case T_INT:
-                content = malloc(sizeof (int));
-                *((int *)content) = num;
-                break;
-            case T_DOUBLE:
-                content = malloc(sizeof (double));
-                *((double *)content) = num;
-                break;
-            default: 
-            content = nullptr;
-        }
-    }
-};
-vector<DynamicNumber> dynamicNumbers;
+// 动态生成的常量表
+vector<int>intConstants;
+vector<double>doubleConstants;
+vector<string>stringConstants;
 // 界符
 const string delimiters[] = {
     ",",  ";", "(",  ")",  "{",  "}",   "[", "]", "<", "<<",
@@ -185,7 +168,7 @@ string tryReadDelimiter() {
     } else if (lineBuff[colNum] == '[') {
         delimiter = "[";
     } else if (lineBuff[colNum] == ']') {
-        delimiter = "[";
+        delimiter = "]";
     } else if (lineBuff[colNum] == '!') {
         if (lineBuff[colNum + 1] == '=') delimiter = "!=", colNum++;
         else delimiter = "!";
@@ -262,52 +245,57 @@ double tryReadNumber(){
     }
     return sum;
 }
+int escapeCharacter2ascll(char c){
+    int ascllCode;
+    switch(c){
+        case 'o':
+            ascllCode = 0;
+            break;
+        case 'n':
+            ascllCode = 10;
+            break;
+        case 'r':
+            ascllCode = 13;
+            break;
+        case 't':
+            ascllCode = 9;
+            break;
+        case 'v':
+            ascllCode = 11;
+            break;
+        case 'a':
+            ascllCode = 7;
+            break;
+        case 'b':
+            ascllCode = 8;
+            break;
+        case 'f':
+            ascllCode = 12;
+            break;
+        case '\'':
+            ascllCode = 39;
+            break;
+        case '\"':
+            ascllCode = 34;
+            break;
+        case '\\':
+            ascllCode = 92;
+            break;
+        case '\?':
+            ascllCode = 63;
+            break;
+        default:
+            ascllCode = -1;
+    }
+    return ascllCode;
+}
 int tryReadChar(){
     int index = colNum++;
     int ascllCode = -1;
     // 带转义字符的
     if (lineBuff[colNum] == '\\'){
         colNum++;
-        switch(lineBuff[colNum++]){
-            case 'o':
-                ascllCode = 0;
-                break;
-            case 'n':
-                ascllCode = 0;
-                break;
-            case 'r':
-                ascllCode = 0;
-                break;
-            case 't':
-                ascllCode = 0;
-                break;
-            case 'v':
-                ascllCode = 0;
-                break;
-            case 'a':
-                ascllCode = 0;
-                break;
-            case 'b':
-                ascllCode = 0;
-                break;
-            case 'f':
-                ascllCode = 0;
-                break;
-            case '\'':
-                ascllCode = 0;
-                break;
-            case '\"':
-                ascllCode = 0;
-                break;
-            case '\\':
-                ascllCode = 0;
-                break;
-            case '\?':
-                ascllCode = 0;
-                break;
-            default:
-                ascllCode = -1;
-        }
+        ascllCode = escapeCharacter2ascll(lineBuff[colNum++]);
     } else {
         ascllCode = lineBuff[colNum++];
     }
@@ -319,6 +307,32 @@ int tryReadChar(){
         colNum = index;
     }
     return ascllCode;
+}
+string tryReadString(){
+    int index = colNum++;
+    string readString = "";
+    while(lineBuff[colNum] != '\0'){
+        if (lineBuff[colNum] == '\\'){
+            colNum++;
+            int escapeCharacterCode = escapeCharacter2ascll(lineBuff[colNum]);
+            if (escapeCharacterCode == -1){
+                matching = false;
+                colNum = index;
+                return "";
+            }
+            string char2string(1, escapeCharacterCode);
+            readString += char2string;
+        } else if (lineBuff[colNum] == '\"'){
+            matching = true;
+            colNum++;
+            break;
+        } else {
+            string char2string(1, lineBuff[colNum]);
+            readString += char2string;
+        }
+        colNum++;
+    }
+    return readString;
 }
 bool handleDelimiter(const string delimiter){
     int index = getDelimiterIndex(delimiter);
@@ -333,26 +347,25 @@ bool handleDelimiter(const string delimiter){
  */
 void handleNumber(const double num){
     if ((int)num == num){
-        DynamicNumber d(T_INT, num);
-        dynamicNumbers.push_back(d);
-        ansSet.push_back(Result(to_string((int)num), INTEGER_CONSTANTS_ID, dynamicNumbers.size() - 1));
+        ansSet.push_back(Result(to_string((int)num), INTEGER_CONSTANTS_ID, intConstants.size() - 1));
+        intConstants.push_back(num);
     } else {
-        DynamicNumber d(T_DOUBLE, num);
-        dynamicNumbers.push_back(d);
-        ansSet.push_back(Result(to_string(num), REAL_CONSTANTS_ID, dynamicNumbers.size() - 1));
+        ansSet.push_back(Result(to_string(num), REAL_CONSTANTS_ID, doubleConstants.size() - 1));
+        doubleConstants.push_back(num);
     }
 }
 void handleChar(const int ascllCode){
     string char2string(1, ascllCode);
     ansSet.push_back(Result(char2string, CHAR_CONSTANTS_ID, ascllCode));
 }
+void handleString(const string str){
+    ansSet.push_back(Result(str, STRING_CONSTANTS_ID, stringConstants.size()));
+    stringConstants.push_back(str);
+}
 void print(){
     int len = ansSet.size();
     for (int i = 0 ; i < len; i++)
-        cout << "(\t" << ansSet[i].word << ", " << 
-        ansSet[i].identifyId << ", " << 
-        ansSet[i].internalCode << 
-        "\t)" <<endl;
+        printf("<\t%-20s,%02d,%02d\t>\n", ansSet[i].word.c_str(), ansSet[i].identifyId, ansSet[i].internalCode);
 }
 void saveIdentify(){
     ofstream outFile;
@@ -368,30 +381,45 @@ void saveIdentify(){
 }
 void saveNumberConstant(){
     ofstream outFile;
-    outFile.open("number.txt", ios::out | ios::trunc);
+    outFile.open("intConstants.txt", ios::out | ios::trunc);
     if (!outFile.is_open()) {
         cout << "failed to read file" << endl;
         return ;
     }
-    int size = dynamicNumbers.size();
-    for (int i = 0; i < size; i++)
-        if (dynamicNumbers[i].type == T_INT){
-            cout<< *((int *) dynamicNumbers[i].content) <<endl;
-            outFile<< *((int *) dynamicNumbers[i].content) <<endl;
-        } else if (dynamicNumbers[i].type == T_DOUBLE){
-            outFile<< *((double *) dynamicNumbers[i].content) <<endl;
-            cout<< *((double *) dynamicNumbers[i].content) <<endl;
-        } else {
-            outFile << "unknown-type number" << endl;
-        }
+    int size = intConstants.size();
+    for (int i = 0; i < size; i++) outFile << intConstants[i] << endl;
+    outFile.clear();
+    outFile.close();
+
+    outFile.open("doubleConstants.txt", ios::out | ios::trunc);
+    if (!outFile.is_open()) {
+        cout << "failed to read file" << endl;
+        return ;
+    }
+    size = doubleConstants.size();
+    for (int i = 0; i < size; i++) outFile << doubleConstants[i] << endl;
+    outFile.clear();
+    outFile.close();
+}
+void saveStringConstant(){
+    ofstream outFile;
+    outFile.open("stringConstants.txt", ios::out | ios::trunc);
+    if (!outFile.is_open()) {
+        cout << "failed to read file" << endl;
+        return ;
+    }
+    int size = stringConstants.size();
+    for (int i = 0; i < size; i++) outFile << stringConstants[i] << endl;
     outFile.clear();
     outFile.close();
 }
 void saveToFile(){
     saveIdentify();
     saveNumberConstant();
+    saveStringConstant();
 }
 int main(int arc, const char *argv[]) {
+    tryReadString();
     ifstream inFile;
     // 默认读取test.c
     if (arc == 2) {
@@ -405,7 +433,6 @@ int main(int arc, const char *argv[]) {
     }
     string wordBuff;
     while (inFile.getline(lineBuff, sizeof lineBuff)) {
-        // cout << rowNum++ << "\t" << lineBuff << endl;
         colNum = 0, matching = false;
         while (lineBuff[colNum] != '\0') {
             if (isLetter(lineBuff[colNum]) || lineBuff[colNum] == '_') {
@@ -435,6 +462,13 @@ int main(int arc, const char *argv[]) {
                     handleChar(ascllCode);
                 } else {
                     error("char analyze failed.");
+                    return 0;
+                }
+            }else if(lineBuff[colNum] == '\"'){
+                wordBuff = tryReadString();
+                if (matching)handleString(wordBuff);
+                else{
+                    error("string analyze failed.");
                     return 0;
                 }
             }else if(isBlank(lineBuff[colNum]))colNum++;
