@@ -1,19 +1,23 @@
 #ifndef __TEMPSTRUCTS_H__
 #define __TEMPSTRUCTS_H__
-
 #include <string>
+#include <vector>
+using namespace std;
 
 struct Result {
-        // 璇嗗埆鐨勫崟璇嶆垨绗﹀彿
-        string word;
-        // 绫诲埆鍙凤紝鍐呯爜
-        int identifyId, internalCode;
-        Result(string wd, int idtfid, int incode = -1) {
-            word = wd, identifyId = idtfid, internalCode = incode;
-        }
-    };
+    // 识别的单词或符号
+    string word;
+    // 类别号，内码
+    int identifyId, internalCode;
+    Result(string wd, int idtfid, int incode = -1) {
+        word = wd, identifyId = idtfid, internalCode = incode;
+    }
+};
 struct LexAnalyzerResult{
-    Result result;
-
+    vector<Result> ansSet;
+    vector<string> identifyTable;
+    vector<int>intConstants;
+    vector<double>doubleConstants;
+    vector<string>stringConstants;
 };
 #endif  

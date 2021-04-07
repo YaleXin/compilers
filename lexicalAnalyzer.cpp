@@ -10,18 +10,10 @@
 #include <string>
 #include <vector>
 #include <malloc.h>
+#include "tempStructs.h"
 using namespace std;
 class LexicalAnalyzer{
     const bool SAVE_TO_FILE = true;
-    struct Result {
-        // 识别的单词或符号
-        string word;
-        // 类别号，内码
-        int identifyId, internalCode;
-        Result(string wd, int idtfid, int incode = -1) {
-            word = wd, identifyId = idtfid, internalCode = incode;
-        }
-    };
     vector<Result> ansSet;
     // 保留字 有序列表，方便于折半查找
     const string reservedWords[32] = {
@@ -55,7 +47,6 @@ class LexicalAnalyzer{
     char lineBuff[4096];
     int rowNum = 0, colNum = 0;
     vector<string> identifyTable;
-    vector<string> constNumberTable;
     bool matching = false;
     void error(string errorMsg) {
         cout << "lexical analyze error!, because is : "<< errorMsg <<
@@ -421,14 +412,15 @@ class LexicalAnalyzer{
         saveStringConstant();
     }
 public:
-    int main(string filename="D:\\my_cpp_workspace\\compilers\\test.c") {
+    LexAnalyzerResult main(string filename="D:\\my_cpp_workspace\\compilers\\test.c") {
+        LexAnalyzerResult rsl;
         tryReadString();
         ifstream inFile;
         // 默认读取test.c
         inFile.open(filename, ios::in);
         if (!inFile.is_open()) {
             cout << "failed to read file" << endl;
-            return 0;
+            return rsl;
         }
         string wordBuff;
         while (inFile.getline(lineBuff, sizeof lineBuff)) {
@@ -440,20 +432,20 @@ public:
                         handleMatchingIdentify(wordBuff);
                     } else {
                         error("idetify analyze failed.");
-                        return 0;
+                        return rsl;
                     }
                 } else if (isDelimiter(lineBuff[colNum])) {
                     wordBuff = tryReadDelimiter();
                     if (!handleDelimiter(wordBuff)){
                         error("delimiter analyze failed.");
-                        return 0;
+                        return rsl;
                     }
                 }else if (isDigital(lineBuff[colNum])){
                     double numBuff = tryReadNumber();
                     if (matching)handleNumber(numBuff);
                     else {
                         error("number analyze failed.");
-                        return 0;
+                        return rsl;
                     }
                 }else if (lineBuff[colNum] == '\''){
                     int ascllCode = tryReadChar();
@@ -461,14 +453,14 @@ public:
                         handleChar(ascllCode);
                     } else {
                         error("char analyze failed.");
-                        return 0;
+                        return rsl;
                     }
                 }else if(lineBuff[colNum] == '\"'){
                     wordBuff = tryReadString();
                     if (matching)handleString(wordBuff);
                     else{
                         error("string analyze failed.");
-                        return 0;
+                        return rsl;
                     }
                 }else if(isBlank(lineBuff[colNum]))colNum++;
             }
@@ -478,6 +470,9 @@ public:
         if (SAVE_TO_FILE)saveToFile();
         inFile.clear();
         inFile.close();
-        return 0;
+        rsl.ansSet = ansSet, rsl.doubleConstants = doubleConstants, 
+        rsl.identifyTable = identifyTable, rsl.intConstants = intConstants,
+        rsl.stringConstants = stringConstants;
+        return rsl;
     }
 };
