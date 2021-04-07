@@ -6,4 +6,3 @@ a
 ao
 an
 at
-stringTest
