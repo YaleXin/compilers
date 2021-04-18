@@ -1,3 +1,8 @@
+/*
+ * @Author      : YaleXin
+ * @Email       : 181303209@yzu.edu.cn
+ * @LastEditors : YaleXin
+ */
 #include <iostream>
 #include <cstdio>
 #include "lexicalAnalyzer.cpp"
