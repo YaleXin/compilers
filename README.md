@@ -206,3 +206,18 @@ Temp2	-> ( Expr )
 		|  number
 ```
 
+²âÊÔµÄCÓïÑÔ³ÌĞò£º
+
+```c
+void main(){
+    
+    int f_i = 1;
+    int sum = 0;
+    while(f_i <= 100){
+        sum = sum + f_i * f_i;
+        f_i = f_i + 1; 
+    }
+    return 0;
+}
+```
+
