@@ -16,8 +16,7 @@
 using namespace std;
 class Lex {
     ifstream inFile;
-    const bool SAVE_TO_FILE = true;
-    vector<Result> ansSet;
+    const int EOF_ID = -2021;
     // 保留字 有序列表，方便于折半查找
     const string reservedWords[32] = {
         "auto",     "break",  "case",    "char",   "const",    "continue",
@@ -35,31 +34,24 @@ class Lex {
     const int CHAR_CONSTANTS_ID = 35;
     const int STRING_CONSTANTS_ID = 36;
     const int DELIMITER_ID = 37;
-    // 标识符类型
-    enum IdentifyType {
-        T_CHAR,
-        T_SHORT,
-        T_INT,
-        T_LONG,
-        LONG_LONG,
-        T_DOUBLE,
-        T_FLOAT,
-        T_ARRAY,
-        T_FUNCTION
-    };
-    // 动态生成的常量表
-    vector<int> intConstants;
-    vector<double> doubleConstants;
-    vector<string> stringConstants;
+
     // 界符
     const string delimiters[30] = {
         ",",  ";", "(",  ")",  "{",  "}",   "[", "]", "<", "<<",
         "<=", ">", ">>", ">=", "==", "!==", "=", "~", "!", "?",
         ":",  "|", "||", "&",  "&&", "+",   "-", "*", "/", "%"};
     const char dlmt[23] = ",;(){}[]<>=!~?:|&+-*/%";
+
+    // 动态生成的常量表
+    vector<int> intConstants;
+    vector<double> doubleConstants;
+    vector<string> stringConstants;
+
+    vector<string> identifyTable;
+
     char lineBuff[4096];
     int rowNum = 0, colNum = 0;
-    vector<string> identifyTable;
+
     bool matching = false;
     void error(string errorMsg) {
         cout << "lexical analyze error!, because is : " << errorMsg
@@ -124,9 +116,6 @@ class Lex {
     string tryReadIdentify() {
         int index = colNum;
         string buff = "";
-        while (lineBuff[colNum] == '_' || isLetter(lineBuff[colNum])) {
-            buff += lineBuff[colNum++];
-        }
         while (lineBuff[colNum] == '_' || isLetter(lineBuff[colNum]) ||
                isDigital(lineBuff[colNum])) {
             buff += lineBuff[colNum++];
@@ -140,7 +129,8 @@ class Lex {
         }
         return buff;
     };
-    void handleMatchingIdentify(string identify) {
+    void handleMatchingIdentify(string identify, Result &rst) {
+        rst.word = identify;
         int index = getReservedWordsIndex(identify);
         // 不是保留字
         if (index == -1) {
@@ -151,10 +141,10 @@ class Lex {
                 identifyTable.push_back(identify);
                 index = identifyTable.size() - 1;
             }
-            ansSet.push_back(Result(identify, IDENTIFY_ID, index));
+            rst.identifyId = IDENTIFY_ID, rst.internalCode = index;
         } else {
             // 是保留字
-            ansSet.push_back(Result(identify, index));
+            rst.identifyId = index;
         }
     }
     string tryReadDelimiter() {
@@ -230,21 +220,16 @@ class Lex {
     double tryReadNumber() {
         int index = colNum;
         double sum = 0;
-        bool positive = false;
-        if (lineBuff[colNum] == '-') {
-            positive = true;
-            colNum++;
-        } else if (lineBuff[colNum] == '+') {
-            colNum++;
-        }
         while (isDigital(lineBuff[colNum])) {
             sum = sum * 10 + lineBuff[colNum] - '0';
             colNum++;
         }
+        // 浮点数
         if (lineBuff[colNum] == '.') {
             if (colNum == 0 || !isDigital(lineBuff[colNum - 1])) {
                 matching = false;
                 colNum = index;
+                return 0.0;
             } else {
                 colNum++;
                 if (isDigital(lineBuff[colNum])) {
@@ -254,14 +239,19 @@ class Lex {
                         colNum++;
                         base /= 10;
                     }
-                    matching = true;
                 } else {
                     matching = false;
                     colNum = index;
+                    return 0.0;
                 }
             }
-        } else {
+        }
+        // 数字结束的时候后面是界符，但不是 (, {, [
+        if (isDelimiter(lineBuff[colNum]) && lineBuff[colNum] != '(' &&
+            lineBuff[colNum] != '{' && lineBuff[colNum] != '[') {
             matching = true;
+        } else {
+            matching = false;
         }
         return sum;
     }
@@ -355,10 +345,9 @@ class Lex {
         }
         return readString;
     }
-    bool handleDelimiter(const string delimiter) {
+    bool handleDelimiter(const string delimiter, Result &rst) {
         int index = getDelimiterIndex(delimiter);
-        if (index == -1) return false;
-        ansSet.push_back(Result(delimiter, DELIMITER_ID + index));
+        rst.word = delimiter, rst.identifyId = DELIMITER_ID + index;
         return true;
     }
     /**
@@ -367,83 +356,27 @@ class Lex {
      * @param {const double} num
      * @return
      */
-    void handleNumber(const double num) {
+    void handleNumber(const double num, Result &rst) {
         if ((int)num == num) {
-            ansSet.push_back(Result(to_string((int)num), INTEGER_CONSTANTS_ID,
-                                    intConstants.size() - 1));
+            rst.word = to_string((int)num),
+            rst.identifyId = INTEGER_CONSTANTS_ID,
+            rst.internalCode = intConstants.size();
             intConstants.push_back(num);
         } else {
-            ansSet.push_back(Result(to_string(num), REAL_CONSTANTS_ID,
-                                    doubleConstants.size() - 1));
+            rst.word = to_string(num), rst.identifyId = REAL_CONSTANTS_ID,
+            rst.internalCode = doubleConstants.size();
             doubleConstants.push_back(num);
         }
     }
-    void handleChar(const int ascllCode) {
+    void handleChar(const int ascllCode, Result &rst) {
         string char2string(1, ascllCode);
-        ansSet.push_back(Result(char2string, CHAR_CONSTANTS_ID, ascllCode));
+        rst.word = char2string, rst.identifyId = CHAR_CONSTANTS_ID,
+        rst.internalCode = ascllCode;
     }
-    void handleString(const string str) {
-        ansSet.push_back(
-            Result(str, STRING_CONSTANTS_ID, stringConstants.size()));
+    void handleString(const string str, Result &rst) {
+        rst.word = str, rst.identifyId = STRING_CONSTANTS_ID,
+        rst.internalCode = stringConstants.size();
         stringConstants.push_back(str);
-    }
-    void print() {
-        int len = ansSet.size();
-        for (int i = 0; i < len; i++)
-            printf("<\t%-20s,%02d,%02d\t>\n", ansSet[i].word.c_str(),
-                   ansSet[i].identifyId, ansSet[i].internalCode);
-        printf("\n----------------\n");
-    }
-    void saveIdentify() {
-        ofstream outFile;
-        outFile.open("identify.txt", ios::out | ios::trunc);
-        if (!outFile.is_open()) {
-            cout << "failed to read file" << endl;
-            return;
-        }
-        int size = identifyTable.size();
-        for (int i = 0; i < size; i++) outFile << identifyTable[i] << endl;
-        outFile.clear();
-        outFile.close();
-    }
-    void saveNumberConstant() {
-        ofstream outFile;
-        outFile.open("intConstants.txt", ios::out | ios::trunc);
-        if (!outFile.is_open()) {
-            cout << "failed to read file" << endl;
-            return;
-        }
-        int size = intConstants.size();
-        for (int i = 0; i < size; i++) outFile << intConstants[i] << endl;
-        outFile.clear();
-        outFile.close();
-
-        outFile.open("doubleConstants.txt", ios::out | ios::trunc);
-        if (!outFile.is_open()) {
-            cout << "failed to read file" << endl;
-            return;
-        }
-        size = doubleConstants.size();
-        for (int i = 0; i < size; i++) outFile << doubleConstants[i] << endl;
-        outFile.clear();
-        outFile.close();
-    }
-    void saveStringConstant() {
-        ofstream outFile;
-        outFile.open("stringConstants.txt", ios::out | ios::trunc);
-        if (!outFile.is_open()) {
-            cout << "failed to read file" << endl;
-            return;
-        }
-        int size = stringConstants.size();
-        for (int i = 0; i < size; i++) outFile << stringConstants[i] << endl;
-        outFile.clear();
-        outFile.close();
-    }
-    void saveToFile() {
-        saveIdentify();
-        saveNumberConstant();
-        saveStringConstant();
     }
 
    public:
@@ -452,9 +385,10 @@ class Lex {
         inFile.open(filename, ios::in);
         if (!inFile.is_open()) {
             cout << "failed to read file" << endl;
-            status = true;
-        } else {
             status = false;
+        } else {
+            status = true;
+            inFile.getline(lineBuff, sizeof lineBuff);
         }
     }
     Result getWord() {
@@ -462,117 +396,56 @@ class Lex {
         bool flag = false;
         string wordBuff;
         Result rst("", -1);
-        if (lineBuff[colNum] == '\0') {
-            inFile.getline(lineBuff, sizeof lineBuff);
-            colNum = 0;
-            rowNum++;
+        while (!flag) {
+            if (isLetter(lineBuff[colNum]) || lineBuff[colNum] == '_') {
+                wordBuff = tryReadIdentify();
+                if (matching) {
+                    handleMatchingIdentify(wordBuff, rst);
+                } else {
+                    error("idetify analyze failed.");
+                }
+                flag = true;
+            } else if (isDelimiter(lineBuff[colNum])) {
+                wordBuff = tryReadDelimiter();
+                handleDelimiter(wordBuff, rst);
+                flag = true;
+            } else if (isDigital(lineBuff[colNum])) {
+                double numBuff = tryReadNumber();
+                if (matching)
+                    handleNumber(numBuff, rst);
+                else {
+                    error("number analyze failed.");
+                }
+                flag = true;
+            } else if (lineBuff[colNum] == '\'') {
+                int ascllCode = tryReadChar();
+                if (matching && ascllCode != -1) {
+                    handleChar(ascllCode, rst);
+                } else {
+                    error("char analyze failed.");
+                }
+                flag = true;
+            } else if (lineBuff[colNum] == '\"') {
+                wordBuff = tryReadString();
+                if (matching)
+                    handleString(wordBuff, rst);
+                else {
+                    error("string analyze failed.");
+                }
+                flag = true;
+            }else if (lineBuff[colNum] == EOF){
+                // 代表文件读取结束
+                rst.identifyId = EOF_ID;
+                inFile.clear();
+                inFile.close();
+            } else if (isBlank(lineBuff[colNum]) && !flag) {
+                colNum++;
+            } else if (lineBuff[colNum] == '\0' && !flag) {
+                inFile.getline(lineBuff, sizeof lineBuff);
+                colNum = 0;
+                rowNum++;
+            }
         }
-        if (isLetter(lineBuff[colNum]) || lineBuff[colNum] == '_') {
-            wordBuff = tryReadIdentify();
-            if (matching) {
-                handleMatchingIdentify(wordBuff);
-            } else {
-                error("idetify analyze failed.");
-                return rst;
-            }
-        } else if (isDelimiter(lineBuff[colNum])) {
-            wordBuff = tryReadDelimiter();
-            if (!handleDelimiter(wordBuff)) {
-                error("delimiter analyze failed.");
-                return rst;
-            }
-        } else if (isDigital(lineBuff[colNum])) {
-            double numBuff = tryReadNumber();
-            if (matching)
-                handleNumber(numBuff);
-            else {
-                error("number analyze failed.");
-                return rst;
-            }
-        } else if (lineBuff[colNum] == '\'') {
-            int ascllCode = tryReadChar();
-            if (matching && ascllCode != -1) {
-                handleChar(ascllCode);
-            } else {
-                error("char analyze failed.");
-                return rst;
-            }
-        } else if (lineBuff[colNum] == '\"') {
-            wordBuff = tryReadString();
-            if (matching)
-                handleString(wordBuff);
-            else {
-                error("string analyze failed.");
-                return rst;
-            }
-        } else if (isBlank(lineBuff[colNum]))
-            colNum++;
-    }
-    LexAnalyzerResult main(
-        string filename = "D:\\my_cpp_workspace\\compilers\\test.c") {
-        LexAnalyzerResult rst;
-        tryReadString();
-        ifstream inFile;
-        // 默认读取test.c
-        inFile.open(filename, ios::in);
-        if (!inFile.is_open()) {
-            cout << "failed to read file" << endl;
-            return rst;
-        }
-        string wordBuff;
-        while (inFile.getline(lineBuff, sizeof lineBuff)) {
-            colNum = 0, matching = false;
-            while (lineBuff[colNum] != '\0') {
-                if (isLetter(lineBuff[colNum]) || lineBuff[colNum] == '_') {
-                    wordBuff = tryReadIdentify();
-                    if (matching) {
-                        handleMatchingIdentify(wordBuff);
-                    } else {
-                        error("idetify analyze failed.");
-                        return rst;
-                    }
-                } else if (isDelimiter(lineBuff[colNum])) {
-                    wordBuff = tryReadDelimiter();
-                    if (!handleDelimiter(wordBuff)) {
-                        error("delimiter analyze failed.");
-                        return rst;
-                    }
-                } else if (isDigital(lineBuff[colNum])) {
-                    double numBuff = tryReadNumber();
-                    if (matching)
-                        handleNumber(numBuff);
-                    else {
-                        error("number analyze failed.");
-                        return rst;
-                    }
-                } else if (lineBuff[colNum] == '\'') {
-                    int ascllCode = tryReadChar();
-                    if (matching && ascllCode != -1) {
-                        handleChar(ascllCode);
-                    } else {
-                        error("char analyze failed.");
-                        return rst;
-                    }
-                } else if (lineBuff[colNum] == '\"') {
-                    wordBuff = tryReadString();
-                    if (matching)
-                        handleString(wordBuff);
-                    else {
-                        error("string analyze failed.");
-                        return rst;
-                    }
-                } else if (isBlank(lineBuff[colNum]))
-                    colNum++;
-            }
-            rowNum++;
-        }
-        print();
-        if (SAVE_TO_FILE) saveToFile();
-        inFile.clear();
-        inFile.close();
-        rst.ansSet = ansSet, rst.doubleConstants = doubleConstants,
-        rst.identifyTable = identifyTable, rst.intConstants = intConstants,
-        rst.stringConstants = stringConstants;
         return rst;
     }
 };

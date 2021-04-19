@@ -1,3 +1,8 @@
+/*
+ * @Author      : YaleXin
+ * @Email       : 181303209@yzu.edu.cn
+ * @LastEditors : YaleXin
+ */
 #ifndef __TEMPSTRUCTS_H__
 #define __TEMPSTRUCTS_H__
 #include <string>
@@ -20,4 +25,18 @@ struct LexAnalyzerResult{
     vector<double>doubleConstants;
     vector<string>stringConstants;
 };
+
+// 标识符类型
+enum IdentifyType {
+    T_CHAR,
+    T_SHORT,
+    T_INT,
+    T_LONG,
+    LONG_LONG,
+    T_DOUBLE,
+    T_FLOAT,
+    T_ARRAY,
+    T_FUNCTION
+};
+
 #endif  
