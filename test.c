@@ -1,8 +1,10 @@
 void main(){
-    int abv = 77;
-    int _s5 = abv;
-    double 66gggg = 99.999;
-    char a = 'a', ao = '\o', an = '\n', at = '\t';
-    char stringTest[] = "gggggg\naaaaaa\tfffff\"ffffff\'ffffff\\ffff";
+    
+    int f_i = 1;
+    int sum = 0;
+    while(f_i <= 100){
+        sum = sum + f_i * f_i;
+        f_i = f_i + 1; 
+    }
     return 0;
 }

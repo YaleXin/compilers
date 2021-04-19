@@ -24,7 +24,15 @@ vector<string> identifyTable;
 
 const int EOF_ID = -2021;
 
-int main() {
+int main(int argc, char const *argv[]){
+    
+    return 0;
+}
+
+
+
+// 测试 词法分析器是否能够正常运行
+int test() {
     ios::sync_with_stdio(false);
     string filename="D:\\my_cpp_workspace\\compilers\\test.c";
     bool status;

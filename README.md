@@ -1,4 +1,5 @@
 <!--
+
  * @Author      : YaleXin
  * @Email       : 181303209@yzu.edu.cn
  * @LastEditors : YaleXin
@@ -119,4 +120,89 @@
 | `\\`     | 反斜杠                              | 092                 |
 
 **不支持`\177`或者` \x7f `**
+
+## 递归下降分析器
+
+下面的文法中，小写的是终结符，大写开头的是非终结符
+
+$$
+epsilon = \epsilon
+$$
+
+```code
+Program -> int main() Block
+Block   -> { Stmts }
+Stmts   -> Stmt Stmts | epsilon
+Stmt    ->Type id = Expr;
+		|  if (Bool) Block
+		|  if (Bool) Block else Block
+		|  while (Bool) Block
+		|  do (Bool) Block
+		|  Block
+Type    -> char | short | int | long | double | float
+Bool	-> Expr == Expr
+		|  Expr != Expr
+		|  Expr <  Expr
+		|  Expr >  Expr
+		|  Bool 与运算 Bool
+		|  Bool 或运算 Bool
+		|  Expr
+Expr	-> Expr + Temp1
+		|  Expr - Temp1
+		|  Temp1
+Temp1	-> Temp1 * Temp2
+		|  Temp1 / Temp2
+		|  Temp2
+Temp2	-> ( Expr )
+		|  id
+		|  number
+```
+
+对于非终结符`Bool`的产生式出现直接左递归！
+
+下面对`Bool`进行消除左递归：
+
+```code
+// 先将它化简一下
+Bool    -> Bool 或运算 或者 与运算 Bool | T
+T       -> Expr == Expr
+		|  Expr != Expr
+		|  Expr <  Expr
+		|  Expr >  Expr
+		|  Expr
+//消除递归
+Bool   -> T Bool2
+Bool2  -> 或运算 或者 与运算 Bool Bool2
+```
+
+即最终：
+
+```code
+Program -> int main() Block
+Block   -> { Stmts }
+Stmts   -> Stmt Stmts | epsilon
+Stmt    ->Type id = Expr;
+		|  if (Bool) Block
+		|  if (Bool) Block else Block
+		|  while (Bool) Block
+		|  do (Bool) Block
+		|  Block
+Type    -> char | short | int | long | double | float
+Bool    -> Temp0 Bool2
+Bool2   -> 或运算 或者 与运算 Bool Bool2
+Temp0   -> Expr == Expr
+		|  Expr != Expr
+		|  Expr <  Expr
+		|  Expr >  Expr
+		|  Expr
+Expr	-> Expr + Temp1
+		|  Expr - Temp1
+		|  Temp1
+Temp1	-> Temp1 * Temp2
+		|  Temp1 / Temp2
+		|  Temp2
+Temp2	-> ( Expr )
+		|  id
+		|  number
+```
 
