@@ -120,7 +120,7 @@ class Lex {
                isDigital(lineBuff[colNum])) {
             buff += lineBuff[colNum++];
         }
-        if (isDelimiter(lineBuff[colNum]) || isBlank(lineBuff[colNum])) {
+        if (isDelimiter(lineBuff[colNum]) || isBlank(lineBuff[colNum]) || lineBuff[colNum] == '\0') {
             matching = true;
         } else {
             colNum = index;
@@ -433,17 +433,19 @@ class Lex {
                     error("string analyze failed.");
                 }
                 flag = true;
-            }else if (lineBuff[colNum] == EOF){
-                // 代表文件读取结束
-                rst.identifyId = EOF_ID;
-                inFile.clear();
-                inFile.close();
             } else if (isBlank(lineBuff[colNum]) && !flag) {
                 colNum++;
             } else if (lineBuff[colNum] == '\0' && !flag) {
                 inFile.getline(lineBuff, sizeof lineBuff);
                 colNum = 0;
                 rowNum++;
+                if (inFile.eof()) {
+                    // 代表文件读取结束
+                    rst.identifyId = EOF_ID;
+                    inFile.clear();
+                    inFile.close();
+                    break;
+                }
             }
         }
         line = rowNum, col = colNum;

@@ -1,9 +1,1 @@
-num1 = 1;
-num2 = 2;
-num3 = 3;
-num4 = 4;
-num5 = 6;
-sum1 = num1 + num2;
-sum2 = num1 + num2 * num3;
-sum3 = num1 * (num2 + num3);
-sum4 = num1 * (num2 + num3 * (num4 + num5));
+num1 * (num2 + 1)

@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <list>
+#include <queue>
 #include <vector>
 
 #include "../lex.v2.cpp"
@@ -14,33 +16,30 @@
 using namespace std;
 
 vector<Result> ansSet;
-bool status, matching;
+bool status, er;
 Lex lex("D:\\my_cpp_workspace\\compilers\\exp2\\test.cp", status);
-
-// 动态生成的常量表
-vector<int> intConstants;
-vector<double> doubleConstants;
-vector<string> stringConstants;
-
-vector<string> identifyTable;
-/*
- 当前读头对应的单词，当然可以直接用string进行保存，
- 但是为了方便获取该单词的类号和内码，直接使用Result类型
-*/
-// Result nowWord;
-/*
-
-*/
-
+int nowIndex;
+vector<Result> resultLink;
+vector<int> output;
 const int EOF_ID = -2021;
-const int ADD = 62;
-const int SUB = 63;
-const int MUL = 64;
-const int DIV = 65;
-const int IDENTIFY = 65;
-const int LEFT = 39;
-const int RIGHT = 40;
+const int ADD_ID = 62;
+const int SUB_ID = 63;
+const int MUL_ID = 64;
+const int DIV_ID = 65;
+const int IDENTIFY_ID = 32;
+const int LEFT_ID = 39;
+const int RIGHT_ID = 40;
+const int INTEGER_CONSTANTS_ID = 33;
+const int REAL_CONSTANTS_ID = 34;
+
 int lineNum, colNum;
+void error(string msg);
+void printOut() {
+    for (int i = 0; i < output.size(); i++) {
+        cout << output[i] << ends;
+    }
+    cout << endl;
+}
 int test();
 bool expr();
 bool e_1();
@@ -48,7 +47,17 @@ bool e_2();
 bool temp1();
 bool temp2();
 int main(int argc, char const *argv[]) {
-    // test();
+    while (1) {
+        Result r = lex.getWord(lineNum, colNum);
+        if (r.identifyId == -1) {
+            return 0;
+        } else if (r.identifyId == EOF_ID) {
+            break;
+        } else {
+            resultLink.push_back(r);
+        }
+    }
+    if (expr() && !er) cout << "syntax anlalyz success!" << endl;
     return 0;
 }
 
@@ -67,24 +76,168 @@ int test() {
     }
     return 0;
 }
-
 bool expr() {
-    temp1();
-    e_1();
+    output.push_back(1);
+    cout << "Expr -> Temp1 E_1" << endl;
+    cout << "the output is : " << ends;
+    printOut();
+    if (temp1()) return e_1();
+    return false;
 }
-bool e_1() {}
-bool e_2() {
-    Result word = lex.getWord(lineNum, colNum);
-    // 空也是可以的
-    if (word.identifyId == -1 || word.identifyId == EOF_ID)
+bool e_1() {
+    int thisInex = nowIndex, thisSize = output.size();
+    bool ok = false;
+    if (nowIndex == resultLink.size()) {
+        cout << "E_1 -> null" << endl;
+        output.push_back(4);
+        printOut();
         return true;
-    // else if ()
+    }
+    Result word = resultLink[nowIndex];
+    if (word.identifyId == ADD_ID) {
+        nowIndex++;
+        cout << "E_1 -> + Temp1 E_1" << endl;
+        output.push_back(2);
+        cout << "the output is : " << ends;
+        printOut();
+        ok = temp1();
+        if (ok)
+            ok = e_1();
+        else {
+            error("miss (Expr) or id or number");
+            er = true;
+            return false;
+        }
+    } else if (word.identifyId == SUB_ID) {
+        nowIndex++;
+        cout << "E_1 -> - Temp1 E_1" << endl;
+        output.push_back(3);
+        cout << "the output is : " << ends;
+        printOut();
+        ok = temp1();
+        if (ok)
+            ok = e_1();
+        else {
+            error("miss (Expr) or id or number");
+            er = true;
+            return false;
+        }
+    }
+    // 回溯条件是没有出错，但是之前选错了产生式
+    if (!ok && !er) {
+        while (output.size() > thisSize) output.pop_back();
+        cout << "rollback!!!" << endl;
+        cout << "E_1 -> null" << endl;
+        output.push_back(4);
+        printOut();
+        nowIndex = thisInex;
+    }
+    return !er;
+}
+bool e_2() {
+    int thisInex = nowIndex, thisSize = output.size();
+    bool ok = false;
+    if (nowIndex == resultLink.size()) {
+        cout << "E_2 -> null" << endl;
+        output.push_back(8);
+        printOut();
+        return true;
+    }
+    Result word = resultLink[nowIndex];
+    if (word.identifyId == MUL_ID) {
+        nowIndex++;
+        cout << "E_2 -> * Temp2 E_2" << endl;
+        output.push_back(6);
+        cout << "the output is : " << ends;
+        printOut();
+        ok = temp2();
+        if (ok)
+            ok = e_2();
+        else {
+            error("miss (Expr) or id or number");
+            er = true;
+            return false;
+        }
+    } else if (word.identifyId == DIV_ID) {
+        nowIndex++;
+        cout << "E_2 -> / Temp2 E_2" << endl;
+        output.push_back(7);
+        cout << "the output is : " << ends;
+        printOut();
+        ok = temp2();
+        if (ok)
+            ok = e_2();
+        else {
+            error("miss (Expr) or id or number");
+            er = true;
+            return false;
+        }
+    }
+    // 回溯条件是没有出错，但是之前选错了产生式
+    if (!ok && !er) {
+        while (output.size() > thisSize) output.pop_back();
+        cout << "rollback!!!" << endl;
+        cout << "E_2 -> null" << endl;
+        output.push_back(8);
+        printOut();
+        nowIndex = thisInex;
+    }
+    return !er;
 }
 bool temp1() {
-    temp2();
-    e_2();
+    cout << "Temp1 -> Temp2 E_2" << endl;
+    output.push_back(5);
+    cout << "the output is : " << ends;
+    printOut();
+    if (temp2()) return e_2();
+    return false;
 }
-bool temp2() {}
+bool temp2() {
+    int thisIndex = nowIndex;
+    if (nowIndex == resultLink.size()) {
+        error("miss (Expr) or id or number");
+        er = true;
+        return false;
+    }
+    Result word = resultLink[nowIndex];
+    int wordId = word.identifyId;
+    if (wordId == LEFT_ID) {
+        cout << "Temp2 -> ( Expr )" << endl;
+        cout << "the output is : " << ends;
+        output.push_back(9);
+        printOut();
+        nowIndex++;
+        if (expr()) {
+            nowIndex++;
+            if (nowIndex == resultLink.size()) {
+                error("expect \")\"");
+                er = true;
+                return false;
+            }
+            word = resultLink[nowIndex];
+            if (word.identifyId == RIGHT_ID) return true;
+        } else {
+            er = true;
+            error("expect \")\"");
+        }
+    } else if (wordId == IDENTIFY_ID) {
+        cout << "Temp2 -> id" << endl;
+        cout << "the output is : " << ends;
+        output.push_back(10);
+        printOut();
+        nowIndex++;
+        return true;
+    } else if (wordId == REAL_CONSTANTS_ID || wordId == INTEGER_CONSTANTS_ID) {
+        cout << "Temp2 -> number" << endl;
+        cout << "the output is : " << ends;
+        output.push_back(11);
+        printOut();
+
+        nowIndex++;
+        return true;
+    }
+    return false;
+}
 
 void error(string errorMsg) {
     cout << "syntax analyze error!, because is : " << errorMsg
