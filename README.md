@@ -187,7 +187,7 @@ Stmt    ->Type id = Expr;
 		|  while (Bool) Block
 		|  do (Bool) Block
 		|  Block
-Type    -> char | short | int | long | double | float
+Type    -> char | short | int | long | double | float | epsilon
 Bool    -> Temp0 Bool2
 Bool2   -> 或运算 或者 与运算 Bool Bool2
 Temp0   -> Expr == Expr
@@ -206,6 +206,17 @@ Temp2	-> ( Expr )
 		|  number
 ```
 
+`First`集合
+
+```code
+F(Program) = {'int'}
+F(Block) = {'{'}
+F(Stmts) = {epsilon, F(Stmt)}
+F(Stmt)	 = {epsilon, id, 'char', 'short', 'int', ''}
+```
+
+
+
 测试的C语言程序：
 
 ```c
@@ -219,5 +230,48 @@ void main(){
     }
     return 0;
 }
+```
+
+## 表达式
+
+```code
+Expr	-> Expr + Temp1
+		|  Expr - Temp1
+		|  Temp1
+Temp1	-> Temp1 * Temp2
+		|  Temp1 / Temp2
+		|  Temp2
+Temp2	-> ( Expr )
+		|  id
+		|  number
+```
+
+**消除左递归**
+
+```code
+// 先对Expr提取公因子：
+// 意思是Expr 后面可以是（1）Expr 连接上 加号或者减号 连接上 Temp1 （2）Temp1
+Expr -> Expr [+ | -] Temp1 | Temp1
+// 消除 Expr 直接左递归
+Expr    -> Temp1 E_1
+E_1     -> [+ | -] Temp1 E_1 | epsilon
+
+// 继续消除 Temp1 的左递归
+// 提取公因子
+Temp1	-> Temp1 [* | /] Temp2 | Temp2
+// 消除直接左递归
+Temp1   -> Temp2 E_2
+E_2		-> [* | /] Temp2 E_2 | epsilon
+// 综上，最终的文法
+
+Expr    -> Temp1 E_1
+E_1     -> [+ | -] Temp1 E_1 | epsilon
+
+Temp1   -> Temp2 E_2
+E_2		-> [* | /] Temp2 E_2 | epsilon
+
+Temp2	-> ( Expr )
+		|  id
+		|  number
 ```
 

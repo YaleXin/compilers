@@ -391,7 +391,7 @@ class Lex {
             inFile.getline(lineBuff, sizeof lineBuff);
         }
     }
-    Result getWord() {
+    Result getWord(int &line, int &col) {
         // 是否读取到了有效字符
         bool flag = false;
         string wordBuff;
@@ -446,6 +446,7 @@ class Lex {
                 rowNum++;
             }
         }
+        line = rowNum, col = colNum;
         return rst;
     }
 };
