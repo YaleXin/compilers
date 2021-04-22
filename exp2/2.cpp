@@ -59,7 +59,7 @@ const int ERROR = -1;
 // 预测分析表的横坐标每个终结符对应的下标
 map<int, int> vtMap = {{LEFT_ID, 0},   {ADD_ID, 1},  {SUB_ID, 2},
                        {MUL_ID, 3},    {DIV_ID, 4},  {IDENTIFY_ID, 5},
-                       {NUMBER_ID, 6}, {LEFT_ID, 7}, {END_ID, 8}};
+                       {NUMBER_ID, 6}, {RIGHT_ID, 7}, {END_ID, 8}};
 // 预测分析表
 int table[5][9] = {{1, -1, -1, -1, -1, 1, 1, -1, -1},
                    {-1, 2, 3, -1, -1, -1, -1, 4, 4},
@@ -74,7 +74,8 @@ map<int,string>index2sting = {{32, "变量"}, {REAL_CONSTANTS_ID, "实型数字"},
                                 {ADD_ID, "加号"}, {SUB_ID, "减号"},
                                 {MUL_ID, "乘号"}, {DIV_ID, "除号"},
                                 {END_ID, "#号"}};
-stack<int> myStack;
+// stack<int> myStack; STL中的stack不支持遍历！
+vector<int>myStack;
 bool status;
 vector<int>output;
 Lex lex("D:\\my_cpp_workspace\\compilers\\exp2\\test.cp", status);
@@ -82,6 +83,20 @@ void syntaxError(int, int);
 void pushProd(int);
 bool forecastAnalysis();
 void test();
+void printStack();
+void printOutput();
+void printOutput(){
+    cout << "========== 输出带：==========" << endl;
+    int len = output.size();
+    for (int i = 0; i < len; i++)cout << output[i] << ends;
+    cout << endl << endl ;
+}
+void printStack(){
+    cout << "========= 栈内元素：=========" << endl;
+    int len = myStack.size();
+    for (int i = 0; i < myStack.size(); i++)cout << myStack[i] << ends;
+    cout << endl << endl;
+}
 void syntaxError(int errorId , int expectedId = -1) {
     if (expectedId != -1) {
         cout << "syntax analyze fail：expected " << expectedId << " "
@@ -95,12 +110,13 @@ void syntaxError(int errorId , int expectedId = -1) {
 void pushProd(int index) {
     int len = grammar[index].size();
     // 从右至左进栈
-    for (int i = len - 1; i >= 0; i--) myStack.push(grammar[index][i]);
+    for (int i = len - 1; i >= 0; i--) myStack.push_back(grammar[index][i]);
 }
 bool forecastAnalysis() {
     // # 和文法开始符先依次进栈
-    myStack.push(END_ID);
-    myStack.push(EXPR_ID);
+    myStack.push_back(END_ID);
+    myStack.push_back(EXPR_ID);
+    printStack();
     bool flag = true;
     int topId;
     int line = 0, col = 0, iIndex, jIndex, nxtProdIndex;
@@ -108,12 +124,13 @@ bool forecastAnalysis() {
     cnt++;
     if (nowWord.identifyId == EOF_ID)nowWord.identifyId = END_ID;
     while (flag) {
-        topId = myStack.top();
+        topId = myStack.back();
         // 小于100的均是终结符或者#号
         if (topId < OFFSET) {
             if (topId == EPSILON_ID){
                 cout << "匹配 空串" << endl;
-                myStack.pop();
+                myStack.pop_back();
+                printStack();
                 continue;
             }
             // 如果二者相等或者读头是数字
@@ -128,7 +145,8 @@ bool forecastAnalysis() {
                 } else {
                     cout << "匹配 " << index2sting[topId] << endl;
                     // 匹配
-                    myStack.pop();
+                    myStack.pop_back();
+                    printStack();
                     nowWord = lex.getWord(line, col);
                     cnt++;
                     if (nowWord.identifyId == EOF_ID)
@@ -147,9 +165,12 @@ bool forecastAnalysis() {
             nxtProdIndex = table[iIndex][jIndex];
             if (nxtProdIndex){
                 cout << "推导" << endl;
+                if (nxtProdIndex == -1)
+                    cout << " " << endl;
                 output.push_back(nxtProdIndex);
-                myStack.pop();
+                myStack.pop_back();
                 pushProd(nxtProdIndex);
+                printStack();
             } else {
                 syntaxError(nowWord.identifyId);
                 return false;
@@ -168,6 +189,10 @@ void test(){
 int main() {
     // test();
     bool ok = forecastAnalysis();
-    ios::sync_with_stdio(false);
+    cout << endl << endl <<"------------------" << endl;
+    if (ok)
+        printOutput(), cout << "预测程序分析语法分析成功" << endl;
+    else
+        cout << "预测程序分析语法分析失败" << endl;
     return 0;
 }

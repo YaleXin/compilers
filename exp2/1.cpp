@@ -66,7 +66,6 @@ int main(int argc, char const *argv[]) {
     }
     return 0;
 }
-
 // 测试 词法分析器是否能够正常运行
 int test() {
     ios::sync_with_stdio(false);
