@@ -275,3 +275,21 @@ Temp2	-> ( Expr )
 		|  number
 ```
 
+## 预测分析
+
+对上述每个产生式进行编号：
+
+```
+Expr    -> Temp1 E_1 	(1)
+E_1     -> + Temp1 E_1 	(2)
+E_1     -> - Temp1 E_1	(3)
+E_1		-> epsilon		(4)
+Temp1   -> Temp2 E_2	(5)
+E_2		-> * Temp2 E_2	(6)
+E_2		-> / Temp2 E_2	(7)
+E_2		-> epsilon		(8)
+Temp2	-> ( Expr )		(9)
+Temp2	-> id			(10)
+Temp2	-> number		(11)
+```
+

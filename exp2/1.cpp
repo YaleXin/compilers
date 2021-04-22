@@ -57,7 +57,13 @@ int main(int argc, char const *argv[]) {
             resultLink.push_back(r);
         }
     }
-    if (expr() && !er) cout << "syntax anlalyz success!" << endl;
+    lineNum = 0;
+    if (!expr() || er) cout << "expression anlalyz fail!" << endl;
+    else if (nowIndex < resultLink.size()){
+        cout << "expression anlalyz fail!" << endl;
+    } else {
+        cout << "expression anlalyz success!" << endl;
+    }
     return 0;
 }
 
@@ -208,14 +214,16 @@ bool temp2() {
         printOut();
         nowIndex++;
         if (expr()) {
-            nowIndex++;
             if (nowIndex == resultLink.size()) {
                 error("expect \")\"");
                 er = true;
                 return false;
             }
             word = resultLink[nowIndex];
-            if (word.identifyId == RIGHT_ID) return true;
+            if (word.identifyId == RIGHT_ID){
+                 nowIndex++;
+                 return true;
+            }
         } else {
             er = true;
             error("expect \")\"");
@@ -240,6 +248,6 @@ bool temp2() {
 }
 
 void error(string errorMsg) {
-    cout << "syntax analyze error!, because is : " << errorMsg
+    cout << "expression analyze error!, because is : " << errorMsg
          << "in row: " << (lineNum + 1) << ", column: " << (colNum + 1) << endl;
 }

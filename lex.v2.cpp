@@ -75,7 +75,7 @@ class Lex {
      */
     int getDelimiterIndex(const string c) {
         int index = -1;
-        for (int i = 0; i <= 27; i++) {
+        for (int i = 0; i <= 29; i++) {
             if (delimiters[i] == c) {
                 index = i;
                 break;
@@ -247,8 +247,8 @@ class Lex {
             }
         }
         // 数字结束的时候后面是界符，但不是 (, {, [
-        if (isDelimiter(lineBuff[colNum]) && lineBuff[colNum] != '(' &&
-            lineBuff[colNum] != '{' && lineBuff[colNum] != '[') {
+        if (isBlank(lineBuff[colNum]) || lineBuff[colNum] == '\0' || (isDelimiter(lineBuff[colNum]) && lineBuff[colNum] != '(' &&
+            lineBuff[colNum] != '{' && lineBuff[colNum] != '[')) {
             matching = true;
         } else {
             matching = false;
