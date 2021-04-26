@@ -69,6 +69,10 @@ int priorityTable[9][9];
 // 序偶<P, a> P是非终结符，a是终结符
 typedef pair<int,int>P;
 stack<P> myStack;
+// 算符栈和算量栈
+vector<int>optr;
+vector<int>opnd;
+
 // 表的横坐标每个终结符对应的下标
 map<int, int> vtMap = {{LEFT_ID, 0},   {ADD_ID, 1},  {SUB_ID, 2},
                        {MUL_ID, 3},    {DIV_ID, 4},  {IDENTIFY_ID, 5},
@@ -77,21 +81,114 @@ map<int, int> vtMap = {{LEFT_ID, 0},   {ADD_ID, 1},  {SUB_ID, 2},
 string index2vt[] = {"(", "+", "-", "*", "/", "id", "number", ")", "#"};
 vector<Result> ansSet;
 bool status;
-Lex lex("D:\\my_cpp_workspace\\compilers\\exp2\\test.cp", status);
+Lex lex("D:\\my_cpp_workspace\\compilers\\exp3\\test.cp", status);
 
 void initialFirstVT();
 void initialLastVT();
 void initialPriorityTable();
 void firstInsert(int, int);
 void lastInsert(int, int);
+void error(string);
 bool operatorPriority();
+void printStack();
+int calculate(int, int, int);
 
 int main(int argc, char const *argv[]) { 
     initialFirstVT();
     initialLastVT();
     initialPriorityTable();
+    operatorPriority();
     return 0; 
     }
+    void printStack() {
+        cout  << "------ opnd stack ------" << endl;
+        int len = opnd.size();
+        for (int i = 0; i < len; i++) cout << opnd[i] << ends;
+        cout << endl << "------ optr stack ------" << endl;
+        len = optr.size();
+        for (int i = 0; i < len; i++) cout << index2vt[vtMap[optr[i]]] << ends;
+        cout << endl << endl;
+    }
+void error(string errorMsg){
+    cout << "error by " << errorMsg << endl;
+}
+int calculate(int num1, int num2, int op) {
+    int sum = 0;
+    switch (op) {
+        case ADD_ID:
+            sum = num2 + num1;
+            break;
+        case SUB_ID:
+            sum = num2 - num1;
+            break;
+        case MUL_ID:
+            sum = num2 * num1;
+            break;
+        case DIV_ID:
+            sum = num2 / num1;
+            break;
+        default:
+            sum = 0;
+    }
+    return sum;
+}
+
+bool operatorPriority(){
+    int r, c;
+    while(!opnd.empty())opnd.pop_back();
+    while(!optr.empty())optr.pop_back();
+    optr.push_back(END_ID);
+    Result nowWord = lex.getWord(r, c);
+    if (nowWord.identifyId == EOF_ID)nowWord.identifyId = END_ID;
+    bool ok = false;
+    printStack();
+    // optr栈顶符号
+    int theta;
+    while (!ok) {
+        theta = optr.back();
+        if (theta == END_ID && nowWord.identifyId == END_ID) {
+            ok = true;
+            // 匹配左右括号
+        } else if (theta == LEFT_ID && nowWord.identifyId == RIGHT_ID) {
+            optr.pop_back();
+            nowWord = lex.getWord(r, c);
+            if (nowWord.identifyId == EOF_ID)nowWord.identifyId = END_ID;
+            // 读取到整型数字常量
+        } else if (nowWord.identifyId == INTEGER_CONSTANTS_ID){
+            cout << "移进" << endl;
+            opnd.push_back(stoi(nowWord.word));
+            printStack();
+            nowWord = lex.getWord(r, c);
+            if (nowWord.identifyId == EOF_ID)nowWord.identifyId = END_ID;
+        } else {
+            int theta1 = vtMap[theta], theta2 = vtMap[nowWord.identifyId];
+            int status = priorityTable[theta1][theta2];
+            // 移进
+            if (status == LES) {
+                cout << "移进" << endl;
+                optr.push_back(nowWord.identifyId);
+                printStack();
+                nowWord = lex.getWord(r, c);
+                if (nowWord.identifyId == EOF_ID) nowWord.identifyId = END_ID;
+            } else if (status == GRT) {
+                cout << "规约" <<endl;
+                //规约
+                int num1 = opnd.back();
+                opnd.pop_back();
+                int num2 = opnd.back();
+                opnd.pop_back();
+                int rst = calculate(num1, num2, theta);
+                opnd.push_back(rst);
+                optr.pop_back();
+                printStack();
+            } else {
+                error("未知错误");
+                return false;
+            }
+        }
+    }
+    cout << opnd.back() << endl;
+}
 void initialPriorityTable(){
     memset(priorityTable, -1, sizeof priorityTable);
     for (int  i = 1; i <= 10; i++){
