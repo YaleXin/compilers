@@ -17,6 +17,8 @@
 #include "../lex.v2.cpp"
 #include "../tempStructs.h"
 using namespace std;
+
+// 基于优先函数
 /*
 文法
 E		-> # Expr # 		(1)
@@ -69,6 +71,10 @@ int priorityTable[9][9];
 // 序偶<P, a> P是非终结符，a是终结符
 typedef pair<int,int>P;
 stack<P> myStack;
+
+// 优先函数
+int f[9], g[9];
+
 // 算符栈和算量栈
 vector<int>optr;
 vector<int>opnd;
@@ -86,6 +92,7 @@ Lex lex("D:\\my_cpp_workspace\\compilers\\exp3\\test.cp", status);
 void initialFirstVT();
 void initialLastVT();
 void initialPriorityTable();
+void initialFunction();
 void firstInsert(int, int);
 void lastInsert(int, int);
 void error(string);
@@ -97,9 +104,10 @@ int main(int argc, char const *argv[]) {
     initialFirstVT();
     initialLastVT();
     initialPriorityTable();
+    initialFunction();
     operatorPriority();
     return 0; 
-    }
+}
     void printStack() {
         cout  << "------ opnd stack ------" << endl;
         int len = opnd.size();
@@ -111,6 +119,36 @@ int main(int argc, char const *argv[]) {
     }
 void error(string errorMsg){
     cout << "error by " << errorMsg << endl;
+}
+void initialFunction() {
+    memset(f, 0, sizeof f);
+    memset(g, 0, sizeof g);
+    bool change = false;
+    do {
+        change = false;
+        for (int i = 0; i <= 8; i++)
+            for (int j = 0; j <= 8; j++) {
+                if (priorityTable[i][j] == GRT && f[i] <= g[j]) {
+                    f[i] = g[j] + 1;
+                    change = true;
+                } else if (priorityTable[i][j] == LES && f[i] >= g[j]) {
+                    g[j] = f[i] + 1;
+                    change = true;
+                } else if (priorityTable[i][j] == EQL && f[i] != g[j]) {
+                    int maxV = max(f[i], g[j]);
+                    change = true;
+                }
+            }
+    } while (change);
+
+    cout << "----- priority function -----" << endl;
+    printf("%-7s", "");
+    for(int i = 0; i <= 8; i++)printf("%-7s", index2vt[i].c_str());
+    printf("\n%-7s", "f()");
+    for(int i = 0; i <= 8; i++)printf("%-7d", f[i]);
+    printf("\n%-7s", "g()");
+    for(int i = 0; i <= 8; i++)printf("%-7d", g[i]);
+    cout << "\n----------" << endl;
 }
 int calculate(int num1, int num2, int op) {
     int sum = 0;
@@ -161,16 +199,17 @@ bool operatorPriority(){
             nowWord = lex.getWord(r, c);
             if (nowWord.identifyId == EOF_ID)nowWord.identifyId = END_ID;
         } else {
-            int theta1 = vtMap[theta], theta2 = vtMap[nowWord.identifyId];
-            int status = priorityTable[theta1][theta2];
+            int theta2 = vtMap[nowWord.identifyId];
+            bool isLess = f[vtMap[theta]] < g[vtMap[theta2]];
+            bool isGreater = f[vtMap[theta]] > g[vtMap[theta2]];
             // 移进
-            if (status == LES) {
+            if (isLess) {
                 cout << "移进" << endl;
                 optr.push_back(nowWord.identifyId);
                 printStack();
                 nowWord = lex.getWord(r, c);
                 if (nowWord.identifyId == EOF_ID) nowWord.identifyId = END_ID;
-            } else if (status == GRT) {
+            } else if (isGreater) {
                 cout << "规约" <<endl;
                 //规约
                 int num1 = opnd.back();
