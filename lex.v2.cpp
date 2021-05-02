@@ -380,8 +380,25 @@ class Lex {
     }
 
    public:
+    Lex(string filename, bool &status, 
+        vector<int> &intConstants0,
+        vector<double> &doubleConstants0,
+        vector<string> &stringConstants0,
+        vector<string> &identifyTable0) {
+        intConstants = intConstants0;
+        doubleConstants = doubleConstants0;
+        stringConstants = stringConstants0;
+        identifyTable = identifyTable0;
+        inFile.open(filename, ios::in);
+        if (!inFile.is_open()) {
+            cout << "failed to read file" << endl;
+            status = false;
+        } else {
+            status = true;
+            inFile.getline(lineBuff, sizeof lineBuff);
+        }
+    }
     Lex(string filename, bool &status) {
-        cout << "object init...." << endl;
         inFile.open(filename, ios::in);
         if (!inFile.is_open()) {
             cout << "failed to read file" << endl;
@@ -439,7 +456,7 @@ class Lex {
                 inFile.getline(lineBuff, sizeof lineBuff);
                 colNum = 0;
                 rowNum++;
-                if (inFile.eof()) {
+                if (lineBuff[colNum] == '\0' &&inFile.eof()) {
                     // 代表文件读取结束
                     rst.identifyId = EOF_ID;
                     inFile.clear();
