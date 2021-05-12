@@ -18,7 +18,7 @@ using namespace std;
 vector<Result> ansSet;
 bool status, er;
 Lex lex("D:\\my_cpp_workspace\\compilers\\exp2\\test.cp", status);
-int nowIndex;
+int nowIndex, cnt = 1;
 vector<Result> resultLink;
 vector<int> output;
 const int EOF_ID = -2021;
@@ -38,7 +38,7 @@ void printOut() {
     for (int i = 0; i < output.size(); i++) {
         cout << output[i] << ends;
     }
-    cout << endl;
+    // cout << endl;
 }
 int test();
 bool expr();
@@ -58,6 +58,8 @@ int main(int argc, char const *argv[]) {
         }
     }
     lineNum = 0;
+    printf("%-4s %-5s %-10s %-50s\n", "步骤", "读头", "动作", "输出带");
+    printf("%-4s\n", "初态");
     if (!expr() || er) cout << "expression anlalyz fail!" << endl;
     else if (nowIndex < resultLink.size()){
         cout << "expression anlalyz fail!" << endl;
@@ -81,11 +83,17 @@ int test() {
     }
     return 0;
 }
+void print(string action){
+    printf("%-4d ", cnt++);
+    printf("%-5s ", nowIndex < resultLink.size() ? resultLink[nowIndex].word.c_str() : "");
+    printf("%-10s ", action.c_str());
+    printOut();
+    printf("\n");
+}
 bool expr() {
     output.push_back(1);
-    cout << "Expr -> Temp1 E_1" << endl;
-    cout << "the output is : " << ends;
-    printOut();
+    // cout << "Expr -> Temp1 E_1" << endl;
+    print("推导");
     if (temp1()) return e_1();
     return false;
 }
@@ -93,18 +101,17 @@ bool e_1() {
     int thisInex = nowIndex, thisSize = output.size();
     bool ok = false;
     if (nowIndex == resultLink.size()) {
-        cout << "E_1 -> null" << endl;
+        // cout << "E_1 -> null" << endl;
         output.push_back(4);
-        printOut();
+        print("推导空串");
         return true;
     }
     Result word = resultLink[nowIndex];
     if (word.identifyId == ADD_ID) {
-        nowIndex++;
-        cout << "E_1 -> + Temp1 E_1" << endl;
+        // cout << "E_1 -> + Temp1 E_1" << endl;
         output.push_back(2);
-        cout << "the output is : " << ends;
-        printOut();
+        print("匹配+号");
+        nowIndex++;
         ok = temp1();
         if (ok)
             ok = e_1();
@@ -114,11 +121,10 @@ bool e_1() {
             return false;
         }
     } else if (word.identifyId == SUB_ID) {
-        nowIndex++;
-        cout << "E_1 -> - Temp1 E_1" << endl;
+        // cout << "E_1 -> - Temp1 E_1" << endl;
         output.push_back(3);
-        cout << "the output is : " << ends;
-        printOut();
+        print("匹配-号");
+        nowIndex++;
         ok = temp1();
         if (ok)
             ok = e_1();
@@ -131,10 +137,10 @@ bool e_1() {
     // 回溯条件是没有出错，但是之前选错了产生式
     if (!ok && !er) {
         while (output.size() > thisSize) output.pop_back();
-        cout << "rollback!!!" << endl;
-        cout << "E_1 -> null" << endl;
+        // cout << "rollback!!!" << endl;
+        // cout << "E_1 -> null" << endl;
         output.push_back(4);
-        printOut();
+        print("回溯");
         nowIndex = thisInex;
     }
     return !er;
@@ -143,18 +149,17 @@ bool e_2() {
     int thisInex = nowIndex, thisSize = output.size();
     bool ok = false;
     if (nowIndex == resultLink.size()) {
-        cout << "E_2 -> null" << endl;
+        // cout << "E_2 -> null" << endl;
         output.push_back(8);
-        printOut();
+        print("推导空串");
         return true;
     }
     Result word = resultLink[nowIndex];
     if (word.identifyId == MUL_ID) {
-        nowIndex++;
-        cout << "E_2 -> * Temp2 E_2" << endl;
+        // cout << "E_2 -> * Temp2 E_2" << endl;
         output.push_back(6);
-        cout << "the output is : " << ends;
-        printOut();
+        print("匹配*号");
+        nowIndex++;
         ok = temp2();
         if (ok)
             ok = e_2();
@@ -164,11 +169,10 @@ bool e_2() {
             return false;
         }
     } else if (word.identifyId == DIV_ID) {
-        nowIndex++;
-        cout << "E_2 -> / Temp2 E_2" << endl;
+        // cout << "E_2 -> / Temp2 E_2" << endl;
         output.push_back(7);
-        cout << "the output is : " << ends;
-        printOut();
+        print("匹配/号");
+        nowIndex++;
         ok = temp2();
         if (ok)
             ok = e_2();
@@ -181,19 +185,18 @@ bool e_2() {
     // 回溯条件是没有出错，但是之前选错了产生式
     if (!ok && !er) {
         while (output.size() > thisSize) output.pop_back();
-        cout << "rollback!!!" << endl;
-        cout << "E_2 -> null" << endl;
+        // cout << "rollback!!!" << endl;
+        // cout << "E_2 -> null" << endl;
         output.push_back(8);
-        printOut();
+        print("回溯");
         nowIndex = thisInex;
     }
     return !er;
 }
 bool temp1() {
-    cout << "Temp1 -> Temp2 E_2" << endl;
+    // cout << "Temp1 -> Temp2 E_2" << endl;
     output.push_back(5);
-    cout << "the output is : " << ends;
-    printOut();
+    print("推导");
     if (temp2()) return e_2();
     return false;
 }
@@ -207,10 +210,10 @@ bool temp2() {
     Result word = resultLink[nowIndex];
     int wordId = word.identifyId;
     if (wordId == LEFT_ID) {
-        cout << "Temp2 -> ( Expr )" << endl;
-        cout << "the output is : " << ends;
+        // cout << "Temp2 -> ( Expr )" << endl;
+        // cout << "the output is : " << ends;
         output.push_back(9);
-        printOut();
+        print("匹配(号");
         nowIndex++;
         if (expr()) {
             if (nowIndex == resultLink.size()) {
@@ -220,6 +223,7 @@ bool temp2() {
             }
             word = resultLink[nowIndex];
             if (word.identifyId == RIGHT_ID){
+                print("匹配)号");
                  nowIndex++;
                  return true;
             }
@@ -228,18 +232,17 @@ bool temp2() {
             error("expect \")\"");
         }
     } else if (wordId == IDENTIFY_ID) {
-        cout << "Temp2 -> id" << endl;
-        cout << "the output is : " << ends;
+        // cout << "Temp2 -> id" << endl;
+        // cout << "the output is : " << ends;
         output.push_back(10);
-        printOut();
+        print("匹配变量");
         nowIndex++;
         return true;
     } else if (wordId == REAL_CONSTANTS_ID || wordId == INTEGER_CONSTANTS_ID) {
-        cout << "Temp2 -> number" << endl;
-        cout << "the output is : " << ends;
+        // cout << "Temp2 -> number" << endl;
+        // cout << "the output is : " << ends;
         output.push_back(11);
-        printOut();
-
+        print("匹配数字");
         nowIndex++;
         return true;
     }
@@ -250,3 +253,9 @@ void error(string errorMsg) {
     cout << "expression analyze error!, because is : " << errorMsg
          << "in row: " << (lineNum + 1) << ", column: " << (colNum + 1) << endl;
 }
+/*
+
+ab + ab * bc - (cd + 1) * a
+1 5 10 8 2 5 10 6 10 8 3 5 9 1 5 10 8 2 5 11 8 4 6 10 8 4
+1 5 10 8 2 5 10 6 10 8 3 5 9 1 5 10 8 2 5 11 8 4 6 10 8 4
+*/
