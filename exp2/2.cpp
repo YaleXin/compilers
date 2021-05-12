@@ -68,12 +68,14 @@ int table[5][9] = {{1, -1, -1, -1, -1, 1, 1, -1, -1},
                    {9, -1, -1, -1, -1, 10, 11, -1, -1}};
 // 第几个单词
 int cnt = 0;
-map<int,string>index2sting = {{32, "变量"}, {REAL_CONSTANTS_ID, "实型数字"},
-                                {INTEGER_CONSTANTS_ID, "整型数字"},
-                                {LEFT_ID, "左括号"}, {RIGHT_ID, "右括号"},
-                                {ADD_ID, "加号"}, {SUB_ID, "减号"},
-                                {MUL_ID, "乘号"}, {DIV_ID, "除号"},
-                                {END_ID, "#号"}};
+//终结符
+map<int,string>index2VT = {{32, "id"}, {REAL_CONSTANTS_ID, "num"},
+                                {INTEGER_CONSTANTS_ID, "num"},
+                                {LEFT_ID, "("}, {RIGHT_ID, ")"},
+                                {ADD_ID, "+"}, {SUB_ID, "-"},
+                                {MUL_ID, "*"}, {DIV_ID, "/"},
+                                {END_ID, "#"}};
+map<int, string>index2VN = {{100,"Ex"},{101, "E1"}, {102, "T1"}, {103, "E2"}, {104, "T2"}};
 // stack<int> myStack; STL中的stack不支持遍历！
 vector<int>myStack;
 bool status;
@@ -86,16 +88,24 @@ void test();
 void printStack();
 void printOutput();
 void printOutput(){
-    cout << "========== 输出带：==========" << endl;
     int len = output.size();
     for (int i = 0; i < len; i++)cout << output[i] << ends;
-    cout << endl << endl ;
 }
 void printStack(){
-    cout << "========= 栈内元素：=========" << endl;
     int len = myStack.size();
-    for (int i = 0; i < myStack.size(); i++)cout << myStack[i] << ends;
-    cout << endl << endl;
+    for (int i = 0; i < myStack.size(); i++)
+        if(myStack[i] < 100)printf("%-3s ", index2VT[myStack[i]].c_str());
+        else printf("%-3s ", index2VN[myStack[i]].c_str());
+    for(int i = myStack.size(); i <= 7; i++)printf("%-3s "," ");
+}
+int sum;
+void print(string nowStr, string action){
+    printf("%-4d ", sum++);
+    printf("%-5s ", nowStr.c_str());
+    printf("%-10s ", action.c_str());
+    printStack();
+    printOutput();
+    printf("\n");
 }
 void syntaxError(int errorId , int expectedId = -1) {
     if (expectedId != -1) {
@@ -116,7 +126,7 @@ bool forecastAnalysis() {
     // # 和文法开始符先依次进栈
     myStack.push_back(END_ID);
     myStack.push_back(EXPR_ID);
-    printStack();
+    print(" ", "初态");
     bool flag = true;
     int topId;
     int line = 0, col = 0, iIndex, jIndex, nxtProdIndex;
@@ -128,9 +138,8 @@ bool forecastAnalysis() {
         // 小于100的均是终结符或者#号
         if (topId < OFFSET) {
             if (topId == EPSILON_ID){
-                cout << "匹配 空串" << endl;
                 myStack.pop_back();
-                printStack();
+                print(nowWord.word, "匹配空串");
                 continue;
             }
             // 如果二者相等或者读头是数字
@@ -140,13 +149,11 @@ bool forecastAnalysis() {
             (nowWord.identifyId == INTEGER_CONSTANTS_ID)))) {
                 if (topId == END_ID) {
                     // 成功
-                    cout << "匹配 " << index2sting[topId] << endl;
+                    print(nowWord.word, "匹配" + index2VT[topId]);
                     return true;
                 } else {
-                    cout << "匹配 " << index2sting[topId] << endl;
-                    // 匹配
                     myStack.pop_back();
-                    printStack();
+                    print(nowWord.word, "匹配" + index2VT[nowWord.identifyId]);
                     nowWord = lex.getWord(line, col);
                     cnt++;
                     if (nowWord.identifyId == EOF_ID)
@@ -164,13 +171,12 @@ bool forecastAnalysis() {
             else jIndex = vtMap[nowWord.identifyId];
             nxtProdIndex = table[iIndex][jIndex];
             if (nxtProdIndex){
-                cout << "推导" << endl;
                 if (nxtProdIndex == -1)
                     cout << " " << endl;
                 output.push_back(nxtProdIndex);
                 myStack.pop_back();
                 pushProd(nxtProdIndex);
-                printStack();
+                print(nowWord.word, "推导");
             } else {
                 syntaxError(nowWord.identifyId);
                 return false;
@@ -187,7 +193,7 @@ void test(){
     }
 }
 int main() {
-    // test();
+    printf("%-4s %-5s %-10s %-30s %-50s\n", "步骤", "读头", "动作", "下推栈","输出带");
     bool ok = forecastAnalysis();
     cout << endl << endl <<"------------------" << endl;
     if (ok)
