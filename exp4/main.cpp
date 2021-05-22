@@ -57,7 +57,9 @@ int main(int argc, char const *argv[]){
     printf("%-4s %-5s %-10s %-30s %-50s\n", "步骤", "读头", "动作", "状态栈",
            "符号栈");
     nowWord = lex.getWord(l, c);
-    S();
+    if(!S()){
+        printf("error");
+    }
     return 0;
 }
 
@@ -66,20 +68,28 @@ bool S(){
         nowWord = lex.getWord(l, c);
         if (nowWord.identifyId == EQL){
             nowWord = lex.getWord(l, c);
-            E();
+            return E();
+        } else{
+            return false;
         }
+    }else{
+        return false;
     }
 }
 int getTable(int stateTop,const Result &nowWord){
     return action[stateTop][vtMap[nowWord.identifyId]];
 }
 // 处理加减乘除
-void handleCal(int type) {
+bool handleCal(int type) {
     for (int i = 1; i <= 3; i++) stateStk.pop_back(), flagStk.pop_back();
     flagStk.push_back(E_ID);
     int stateTop = *(stateStk.end() - 1);
     int value = action[stateTop][8];
+    if (value == -1){
+        return false;
+    }
     stateStk.push_back(value);
+    return true;
 }
 bool E(){
     // 状态
@@ -92,10 +102,12 @@ bool E(){
     int stateTop, flagTOP, value;
     while(!acc && !er){
         stateTop = *(stateStk.end() - 1);
-        // value = getTable(stateTop, nowWord);
         // 查表
         value = action[stateTop][vtMap[nowWord.identifyId]];
-        if (value == -1)er = true;
+        if (value == -1){ 
+            er = true;
+            continue;    
+        }
         else if (value == -2)acc = true;
         // 移进
         else if (value >= 0 && value < 100){
@@ -113,7 +125,10 @@ bool E(){
                 case 102: 
                 case 103: 
                 case 104: 
-                    handleCal(0);
+                    if (!handleCal(0)){
+                        er = true;
+                        break;
+                    }
                     print(nowWord.word, "规约");
                     break;
                 // E -> (E)
@@ -122,6 +137,10 @@ bool E(){
                     flagStk.push_back(E_ID);
                     stateTop = *(stateStk.end() - 1);
                     value = action[stateTop][8];
+                    if (value == -1) {
+                        er = true;
+                        break;
+                    }
                     stateStk.push_back(value);
                     break;
                 // E -> i
@@ -129,12 +148,19 @@ bool E(){
                     stateStk.pop_back(), flagStk.pop_back();
                     flagStk.push_back(E_ID);
                     stateTop = *(stateStk.end() - 1);
-                    stateStk.push_back(action[stateTop][8]);
+                    value = action[stateTop][8];
+                    if (value == -1) {
+                        er = true;
+                        break;
+                    }
+                    stateStk.push_back(value);
                     print(nowWord.word, "规约");
                     break;
             }
         }
     }
+    if (acc && !er)return true;
+    return false;
 }
 
 int sum;
