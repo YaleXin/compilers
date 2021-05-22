@@ -41,7 +41,6 @@ class Lex {
         "<=", ">", ">>", ">=", "==", "!==", "=", "~", "!", "?",
         ":",  "|", "||", "&",  "&&", "+",   "-", "*", "/", "%"};
     const char dlmt[23] = ",;(){}[]<>=!~?:|&+-*/%";
-
     // 动态生成的常量表
     vector<int> intConstants;
     vector<double> doubleConstants;
@@ -380,24 +379,6 @@ class Lex {
     }
 
    public:
-    Lex(string filename, bool &status, 
-        vector<int> &intConstants0,
-        vector<double> &doubleConstants0,
-        vector<string> &stringConstants0,
-        vector<string> &identifyTable0) {
-        intConstants = intConstants0;
-        doubleConstants = doubleConstants0;
-        stringConstants = stringConstants0;
-        identifyTable = identifyTable0;
-        inFile.open(filename, ios::in);
-        if (!inFile.is_open()) {
-            cout << "failed to read file" << endl;
-            status = false;
-        } else {
-            status = true;
-            inFile.getline(lineBuff, sizeof lineBuff);
-        }
-    }
     Lex(string filename, bool &status) {
         inFile.open(filename, ios::in);
         if (!inFile.is_open()) {
@@ -468,4 +449,8 @@ class Lex {
         line = rowNum, col = colNum;
         return rst;
     }
+    vector<int> getIntTab(){ return intConstants; }
+    vector<double> getDblTab(){ return doubleConstants; }
+    vector<string> getStrTab(){ return stringConstants; }
+    vector<string> getIdtfTab(){ return identifyTable; }
 };
