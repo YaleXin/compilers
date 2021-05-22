@@ -47,8 +47,8 @@ vector<int>program[10] = {{IDENTIFY, ADD, IDENTIFY}};
 string index2vt[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E"};
 
 int l, c;
-// ·ûºÅÕ» ºÍ×´Ì¬Õ»
-vector<int>flagStk, stateStk;
+// ·ûºÅÕ»  ×´Ì¬Õ» ÖµÕ» 
+vector<int>flagStk, stateStk, valStk;
 bool S();
 bool E();
 void print(string, string);
@@ -178,5 +178,4 @@ void printStack(){
     len = flagStk.size();
     for (int i = 0; i < len; i++)
         printf("%-3s ", index2vt[vtMap[flagStk[i]]].c_str());
-
 }
