@@ -23,9 +23,12 @@ const int MUL = 64, DIV = 65, IDENTIFY = 32;
 const int LEFT = 39, RIGHT = 40, INT_CONSTANTS = 33;
 const int REAL_CONSTANTS = 34, EQL = 53;
 const int ACC = 0, E_ID = 101;
+
+typedef Quaternion Quat;
+
 bool status;
 Lex lex("D:\\my_cpp_workspace\\compilers\\exp4\\test.cp", status);
-Result nowWord("", -1);
+Result nowWord("", -1), copyWord("", -1);
 int action[][9] = {{3, -1, -1, -1, -1, 2, -1, -1, 1},
                    {-1, 4, 5, 6, 7, -1, -1, -2, -1},
                    {3, -1, -1, -1, -1, 2, -1, -1, 8},
@@ -47,15 +50,17 @@ vector<int>program[10] = {{IDENTIFY, ADD, IDENTIFY}};
 string index2vt[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E"};
 
 int l, c;
-// 符号栈  状态栈 值栈 
-vector<int>flagStk, stateStk, valStk;
+// 符号栈  状态栈 PLACE栈 
+vector<int>flagStk, stateStk, placeStk;
 bool S();
 bool E();
+int newTemp();
+int entry(Result);
+Quat gen(int, int, int, int);
 void print(string, string);
 void printStack();
 int main(int argc, char const *argv[]){
-    printf("%-4s %-5s %-10s %-30s %-50s\n", "步骤", "读头", "动作", "状态栈",
-           "符号栈");
+    printf("%-4s %-5s %-10s %-30s %-50s %-50s\n", "步骤", "读头", "动作", "状态栈", "符号栈", "PLACE栈");
     nowWord = lex.getWord(l, c);
     if(!S()){
         printf("error");
@@ -68,6 +73,7 @@ bool S(){
         nowWord = lex.getWord(l, c);
         if (nowWord.identifyId == EQL){
             nowWord = lex.getWord(l, c);
+            copyWord = nowWord;
             return E();
         } else{
             return false;
@@ -115,6 +121,7 @@ bool E(){
             stateStk.push_back(value), flagStk.push_back(nowWord.identifyId);
             print(nowWord.word, "移进");
             nowWord = lex.getWord(l, c);
+            copyWord = nowWord;
             if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
         }
@@ -178,4 +185,19 @@ void printStack(){
     len = flagStk.size();
     for (int i = 0; i < len; i++)
         printf("%-3s ", index2vt[vtMap[flagStk[i]]].c_str());
+}
+int cnt = 0;
+vector<int>tempTab;
+int newTemp(){
+
+}
+/**
+ * @word: 待查询变量
+ * @return: 0     - 499：  整型变量
+ *          500   - 999：  实型常量
+ *          1000  - 9999： 普通变量
+ *          10000 - 99999：临时变量
+ */ 
+int entry(Result word){
+
 }
