@@ -38,5 +38,8 @@ enum IdentifyType {
     T_ARRAY,
     T_FUNCTION
 };
-
+// ËÄÔªÊ½
+struct Quaternion {
+    int op, arg1, arg2, t;
+};
 #endif  
