@@ -48,7 +48,7 @@ int action[][9] = {{3, -1, -1, -1, -1, 2, -1, -1, 1},
 map<int, int> vtMap = {{IDENTIFY, 0}, {ADD, 1}, {SUB, 2}, {MUL, 3}, {DIV, 4}, {LEFT, 5}, {RIGHT, 6}, {END, 7}, {E_ID, 8}};
 vector<int>program[10] = {{IDENTIFY, ADD, IDENTIFY}};
 string index2vt[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E"};
-map<int, string>int2op = {{101, "+"}, {102, "-"}, {103, "*"}, {104, "/"}};
+map<int, string>int2op = {{101, "+"}, {102, "-"}, {103, "*"}, {104, "/"},{200, "="}};
 int l, c;
 // 符号栈  状态栈 PLACE栈 
 vector<int>flagStk, stateStk, placeStk;
@@ -77,12 +77,22 @@ int main(int argc, char const *argv[]){
 }
 
 bool S(){
+    Result leftWord("", -1);
     if (nowWord.identifyId == IDENTIFY){
+        leftWord = nowWord;
         nowWord = lex.getWord(l, c);
         if (nowWord.identifyId == EQL){
             nowWord = lex.getWord(l, c);
             copyWord = nowWord;
-            return E();
+            if(!E()){
+                return false;
+            } else{
+                // 表达式右边处理完后
+                int index = entry(leftWord, -1);
+                Quat q = gen(200, *(placeStk.end() - 1), -1, index);   
+                quats.push_back(q);
+                return true;
+            }
         } else{
             return false;
         }
@@ -300,8 +310,20 @@ void printQuat(){
                     asmTab.push_back(item);
                     break;
             }
-        } else{
-            printf("未知op!\n");
+        } else if(q.op == 200){
+            string e1Str, e2Str = "-", tStr;
+            if (q.arg1 < INT_LEN) e1Str = to_string(intTab[q.arg1]);
+            else if (q.arg1 >= INT_LEN && q.arg1 < INT_LEN + DBL_LEN) e1Str = to_string(dblTab[q.arg1 - INT_LEN]);
+            else if (q.arg1 >= INT_LEN + DBL_LEN && q.arg1 < INT_LEN + DBL_LEN + NML_LEN) e1Str = idtfTab[q.arg1 - INT_LEN - DBL_LEN];
+            else e1Str = "T" + to_string(q.arg1 - 10000);
+            tStr = idtfTab[q.t - INT_LEN - DBL_LEN];
+            printf("(%-2s, %-5s, %-5s, %-5s)\n", int2op[q.op].c_str(), e1Str.c_str(), e2Str.c_str(), tStr.c_str());
+            vector<string> item = {"MOV", "AX" ,e1Str};
+            asmTab.push_back(item);
+            item = {"MOV", tStr, "AX"};
+            asmTab.push_back(item);
+        }else{
+             printf("未知op!\n");
         }
     }
 }
