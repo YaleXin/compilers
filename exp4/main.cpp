@@ -278,35 +278,39 @@ void printQuat(){
             vector<string> item;
             switch(q.op){
                 case 101:
-                    item = {"MOV", "AX", e1Str};
+                    item = {"MOV", "AX,", e1Str};
                     asmTab.push_back(item);
-                    item = {"ADD", "AX", e2Str};
+                    item = {"ADD", "AX,", e2Str};
                     asmTab.push_back(item);
-                    item = {"MOV", tStr, "AX"};
+                    item = {"MOV", tStr + ",", "AX"};
                     asmTab.push_back(item);
                     break;
                 case 102:
-                    item = {"MOV", "AX", e1Str};
+                    item = {"MOV", "AX,", e1Str};
                     asmTab.push_back(item);
-                    item = {"SUB", "AX", e2Str};
+                    item = {"SUB", "AX,", e2Str};
                     asmTab.push_back(item);
-                    item = {"MOV", tStr, "AX"};
+                    item = {"MOV", tStr + ",", "AX"};
                     asmTab.push_back(item);
                     break;
                 case 103:
-                    item = {"MOV", "AL", e1Str};
+                    item = {"MOV", "AX,", e1Str};
                     asmTab.push_back(item);
-                    item = {"MUL",  e2Str};
+                    item = {"MOV", "BX,",  e2Str};
                     asmTab.push_back(item);
-                    item = {"MOV", tStr, "AX"};
+                    item = {"MUL",  "BX"};
+                    asmTab.push_back(item);
+                    item = {"MOV", tStr + ",", "AX"};
                     asmTab.push_back(item);
                     break;
                 case 104:
-                    item = {"MOV", "AX", e1Str};
+                    item = {"MOV", "AX,", e1Str};
                     asmTab.push_back(item);
-                    item = {"DIV",  e2Str};
+                    item = {"MOV", "BX,",  e2Str};
                     asmTab.push_back(item);
-                    item = {"MOV", tStr, "AL"};
+                    item = {"DIV",  "BX"};
+                    asmTab.push_back(item);
+                    item = {"MOV", tStr + ",", "AX"};
                     asmTab.push_back(item);
                     break;
             }
@@ -318,22 +322,44 @@ void printQuat(){
             else e1Str = "T" + to_string(q.arg1 - 10000);
             tStr = idtfTab[q.t - INT_LEN - DBL_LEN];
             printf("(%-2s, %-5s, %-5s, %-5s)\n", int2op[q.op].c_str(), e1Str.c_str(), e2Str.c_str(), tStr.c_str());
-            vector<string> item = {"MOV", "AX" ,e1Str};
+            vector<string> item = {"MOV", "AX," ,e1Str};
             asmTab.push_back(item);
-            item = {"MOV", tStr, "AX"};
+            item = {"MOV", tStr + ",", "AX"};
             asmTab.push_back(item);
         }else{
              printf("未知op!\n");
         }
     }
 }
+// 变量均定义为 16bit 
 void printAsm(){
+    // 8086伪指令部分
+    printf("DATA SEGMENT\n");
+    // 将变量表中的每一个变量定义在数据段中
+    vector<string> idtfTab =  lex.getIdtfTab();
+    int idtfTabLen = idtfTab.size();
+    for (int i = 0; i < idtfTabLen; i++)
+        printf("\t%s DW 0\n", idtfTab[i].c_str());
+    // 临时变量也要
+    for (int i = 0; i < cnt; i++)
+        printf("\tT%d DW 0\n", i);
+    printf("DATA ENDS\n");
+    printf("CODE SEGMENT\n");
+    printf("\tASSUME CS:CODE, DS:DATA\n");
+    printf("START:\n");
+    printf("\tMOV AX, DATA\n");
+    printf("\tMOV DS, AX\n");
     int len = asmTab.size(), itemLen;
     for(int i = 0; i < len; i++){
         itemLen = asmTab[i].size();
+        printf("\t");
         for (int j = 0; j < itemLen; j++){
             printf("%-5s ", asmTab[i][j].c_str());
         }
         printf("\n");
     }
+    printf("\tMOV AH, 4CH\n");
+    printf("\tINT 21H\n");
+    printf("CODE ENDS\n");
+    printf("END START\n");
 }
