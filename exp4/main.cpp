@@ -363,3 +363,8 @@ void printAsm(){
     printf("CODE ENDS\n");
     printf("END START\n");
 }
+/*
+
+
+num1 = 1 + num2 + 2 * 3 / (1 + 2)
+*/
