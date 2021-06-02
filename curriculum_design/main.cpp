@@ -19,22 +19,16 @@ int line, col, NXQ = 0;
 bool status;
 typedef Quaternion Quat;
 vector<Quat>quats;
-Lex lex("D:\\my_cpp_workspace\\compilers\\exp4\\test.cp", status);
+Lex lex("D:\\my_cpp_workspace\\compilers\\curriculum_design\\test.cp", status);
 int cnt = 0;
 // 定义变量语句
 void variableDefinitions(){
     // 实际上严格的编译器，在定义变量的时候是要完成好多事情的，但是为了简化工作，
     // 这里只需要完成查询变量的符号地址，填写进表格中，然而此项工作我放在了词法分析器中
     while (nowWord.identifyId != SEMIC){ nowWord = lex.getWord(line, col); }
-}
-// if (Bool) {} else {}
-bool ifStmt(){
     nowWord = lex.getWord(line, col);
-    if (nowWord.identifyId == LEFT){
-        nowWord = lex.getWord(line, col);
-        Bool();
-    }
 }
+
 int MERG(int p1, int p2){
     int head = p1;
     if (p2 == 0)return head;
@@ -59,16 +53,22 @@ void printStack(){
     int len = stateStk.size();
     for (int i = 0; i < len; i++) printf("%-2d ", stateStk[i]);
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    
     len = flagStk.size();
     for (int i = 0; i < len; i++)
         printf("%-2s ", index2boolStr[boolMap[flagStk[i]]].c_str());
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+
     len = placeStk.size();
-    for(int i = 0; i < len; i++)printf("%-5d ", placeStk[i]);
+    for(int i = 0; i < len; i++)
+        printf("%-5d ", placeStk[i]);
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    
     len = TC_Stk.size();
-    for (int i = 0; i < len; i++) printf("%-2d ", TC_Stk[i]);
+    for (int i = 0; i < len; i++) 
+        printf("%-2d ", TC_Stk[i]);
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    
     len = FC_Stk.size();
     for (int i = 0; i < len; i++) printf("%-2d ", FC_Stk[i]);
 }
@@ -109,6 +109,7 @@ bool Bool(){
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
     int stateTop, flagTOP, value, topTC, topFC, newFc, newTc, varIndex;
+    print(nowWord.word, "");
     while(!acc && !er){
         stateTop = *(stateStk.end() - 1);
         // 查表
@@ -129,11 +130,13 @@ bool Bool(){
             copyWord = nowWord;
             if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
+            print(nowWord.word, "移进");
         }// 规约
         else if (value >= 102 && value < 108){
             switch(value){
                 // B   -> B_0 B
-                case 102:
+                case 102:{
+
                     newTc = *(TC_Stk.end() - 1);
                     newFc = MERG(*(FC_Stk.end() - 2), *(FC_Stk.end() - 1));
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
@@ -143,8 +146,10 @@ bool Bool(){
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
+                }
                 // B   -> B_1 B
-                case 103:
+                case 103:{
+                    
                     newFc = *(FC_Stk.end() - 1);
                     newTc = MERG(*(TC_Stk.end() - 2), *(TC_Stk.end() - 1));
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
@@ -154,6 +159,7 @@ bool Bool(){
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
+                }
                 // B   -> i
                 case 104:{  
                     // 本应出栈再进栈 但是只有一个元素 直接修改栈顶即可
@@ -164,8 +170,8 @@ bool Bool(){
                     *(placeStk.end() - 1) = varIndex;
                     Quat q(JNZ, varIndex, -1, 0);
                     quats.push_back(q);
-                    Quat q(J, -1, -1, 0);
-                    quats.push_back(q);
+                    Quat q1(J, -1, -1, 0);
+                    quats.push_back(q1);
                     NXQ += 2;
                     break;
                 }
@@ -185,8 +191,8 @@ bool Bool(){
                     Quat q(type, b1_place, b2_place, 0);
                     quats.push_back(q);
 
-                    Quat q(J, -1, -1, 0);
-                    quats.push_back(q);
+                    Quat q1(J, -1, -1, 0);
+                    quats.push_back(q1);
                     placeStk.push_back(-1);
                     flagStk.push_back(B_ID);
                     NXQ += 2;
@@ -215,12 +221,21 @@ bool Bool(){
                     break;
                 }
             }
+            print(nowWord.word, "规约");
         }
     }
     if (acc && !er)return true;
     return false;
 }
 bool Type(){}
+// if (Bool) {} else {}
+bool ifStmt(){
+    nowWord = lex.getWord(line, col);
+    if (nowWord.identifyId == LEFT){
+        nowWord = lex.getWord(line, col);
+        Bool();
+    }
+}
 // 单语句
 bool Stmt(){
     if (nowWord.identifyId == SEMIC)return true;
@@ -235,6 +250,7 @@ bool Stmts(){
 // 代码块
 bool Block(){
     if (nowWord.identifyId == LEFT_BIG){
+        nowWord = lex.getWord(line, col);
         Stmts();
     }
     if (nowWord.identifyId == RIGHT_BIG){
@@ -242,17 +258,23 @@ bool Block(){
     }
 }
 // C语言程序
-bool Program(){
-    if (nowWord.identifyId == INT){
+bool Program() {
+    if (nowWord.identifyId == INT) {
         nowWord = lex.getWord(line, col);
-        if (nowWord.identifyId == IDENTIFY && nowWord.word == "main"){
+        if (nowWord.identifyId == IDENTIFY && nowWord.word == "main") {
             nowWord = lex.getWord(line, col);
-            Block();
+            if (nowWord.identifyId == LEFT) {
+                nowWord = lex.getWord(line, col);
+                if (nowWord.identifyId == RIGHT) {
+                    nowWord = lex.getWord(line, col);
+                    Block();
+                }
+            }
         }
     }
 }
 int main(){
-    printf("%-5s %-5s %-30s %-30s %-30s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
+    printf("%-5s %-5s %-30s %-30s %-40s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
     nowWord = lex.getWord(line, col);
     Program();
     return 0;

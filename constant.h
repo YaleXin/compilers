@@ -5,6 +5,7 @@
  */
 #ifndef __CONSTANT_H__
 #define __CONSTANT_H__
+using namespace std;
 const int exprLRTab[][9] = {{3, -1, -1, -1, -1, 2, -1, -1, 1},
                    {-1, 4, 5, 6, 7, -1, -1, -2, -1},
                    {3, -1, -1, -1, -1, 2, -1, -1, 8},
@@ -36,14 +37,14 @@ const int boolLRTab[13][10] = {{-1, 2, -1, -1, -1, -1, -1, 1, 3, 4},
 const int END = -2021, ADD = 62, SUB = 63;
 const int MUL = 64, DIV = 65, IDENTIFY = 32;
 const int LEFT = 39, RIGHT = 40, LEFT_BIG = 41, RIGHT_BIG = 42, INT_CONSTANTS = 33, DBL_CONSTANTS = 34;
-const int REAL_CONSTANTS = 34, EQL = 53, SEMIC = 57;
+const int REAL_CONSTANTS = 34, EQL = 53, SEMIC = 38;
 const int ACC = 0, E_ID = 101, S_ID = 101, B_ID = 102, B_0_ID = 103, B_1_ID = 104;
 const int INT_LEN = 500, DBL_LEN = 500, NML_LEN = 9000, TMP_LEN = 90000;
 const int DO = 7, WHILE = 31, IF = 15, INT = 16, DBL = 8, CHAR = 3;
 const int LES = 45, GRT = 48, AND = 61, OR = 59;
 const int J = 0, JLES = 1, JGRT = 2, JNZ = 3;
 const string index2boolStr[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E"};
-const map<int, int> boolMap = {{RIGHT, 0},  {IDENTIFY, 1}, {LES, 2},  {GRT, 3},
+ map<int, int> boolMap = {{RIGHT, 0},  {IDENTIFY, 1}, {LES, 2},  {GRT, 3},
                            {AND, 4},    {OR, 5},       {S_ID, 6}, {B_ID, 7},
                            {B_0_ID, 8}, {B_1_ID, 9}};
 #endif
