@@ -46,6 +46,38 @@ int MERG(int p1, int p2){
     head = p2;
     return head;
 }
+void BACKPATCH(int r, int t){
+    int m, q = r;
+    while (q != 0){
+        m = quats[q].t;
+        quats[q].t = t;
+        q = m;
+    }
+}
+
+void printStack(){
+    int len = stateStk.size();
+    for (int i = 0; i < len; i++) printf("%-2d ", stateStk[i]);
+    for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    len = flagStk.size();
+    for (int i = 0; i < len; i++)
+        printf("%-2s ", index2boolStr[boolMap[flagStk[i]]].c_str());
+    for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    len = placeStk.size();
+    for(int i = 0; i < len; i++)printf("%-5d ", placeStk[i]);
+    for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    len = TC_Stk.size();
+    for (int i = 0; i < len; i++) printf("%-2d ", TC_Stk[i]);
+    for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    len = FC_Stk.size();
+    for (int i = 0; i < len; i++) printf("%-2d ", FC_Stk[i]);
+}
+void print(string nowStr, string action) {
+    printf("%-5s ", nowStr.c_str());
+    printf("%-5s ", action.c_str());
+    printStack();
+    printf("\n");
+}
 int newTemp(){ return cnt++; }
 /**
  * @word: 待查询变量
@@ -69,9 +101,7 @@ using namespace std;
 bool Expr(){}
 // 布尔表达式
 bool Bool(){
-    map<int, int> boolVtMap = {{RIGHT, 0},  {IDENTIFY, 1}, {LES, 2},  {GRT, 3},
-                           {AND, 4},    {OR, 5},       {S_ID, 6}, {B_ID, 7},
-                           {B_0_ID, 8}, {B_1_ID, 9}};
+
     // 此处不应该使用 # ，因为实际上应该使用 )
     // 作为结束标志（简单起见，布尔表达式中没有左右括号）
     stateStk.push_back(0), flagStk.push_back(RIGHT), placeStk.push_back(-1), TC_Stk.push_back(-1), FC_Stk.push_back(-1);
@@ -82,7 +112,7 @@ bool Bool(){
     while(!acc && !er){
         stateTop = *(stateStk.end() - 1);
         // 查表
-        value = boolLRTab[stateTop][boolVtMap[nowWord.identifyId]];
+        value = boolLRTab[stateTop][boolMap[nowWord.identifyId]];
         if (value == -1){ 
             er = true;
             continue;    
@@ -108,6 +138,8 @@ bool Bool(){
                     newFc = MERG(*(FC_Stk.end() - 2), *(FC_Stk.end() - 1));
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
+                    int stateTop = *(stateStk.end() - 1);
+                    value = boolLRTab[stateTop][boolMap[B_ID]];
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
@@ -117,13 +149,17 @@ bool Bool(){
                     newTc = MERG(*(TC_Stk.end() - 2), *(TC_Stk.end() - 1));
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
+                    int stateTop = *(stateStk.end() - 1);
+                    value = boolLRTab[stateTop][boolMap[B_ID]];
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
                 // B   -> i
                 case 104:{  
                     // 本应出栈再进栈 但是只有一个元素 直接修改栈顶即可
-                    *(flagStk.end() - 1) = B_ID, *(TC_Stk.end() - 1) = NXQ, *(FC_Stk.end() - 1) = NXQ + 1, *(placeStk.end() - 1) = entry();
+                    *(flagStk.end() - 1) = B_ID, *(TC_Stk.end() - 1) = NXQ, *(FC_Stk.end() - 1) = NXQ + 1, *(placeStk.end() - 1) = entry(lastWord, -1);;
+                    int stateTop = *(stateStk.end() - 1);
+                    *(stateStk.end() - 1) = boolLRTab[stateTop][boolMap[B_ID]];
                     varIndex = entry(copyWord, -1);
                     *(placeStk.end() - 1) = varIndex;
                     Quat q(JNZ, varIndex, -1, 0);
@@ -141,15 +177,43 @@ bool Bool(){
                     int b1_place = *(placeStk.end() - 2), b2_place = *(placeStk.end() - 1);
                     for (int i = 1; i <= 3; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
-                    // stateStk.
+                    int stateTop = *(stateStk.end() - 1);
+                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    stateStk.push_back(value);
+                    TC_Stk.push_back(NXQ), FC_Stk.push_back(NXQ + 1);
+
+                    Quat q(type, b1_place, b2_place, 0);
+                    quats.push_back(q);
+
+                    Quat q(J, -1, -1, 0);
+                    quats.push_back(q);
+                    placeStk.push_back(-1);
+                    flagStk.push_back(B_ID);
+                    NXQ += 2;
                     break;
                 }
                 // B_0 -> B &&
-                case 107:
+                case 107:{
+                    int b_tc = *(TC_Stk.end() - 2), b_fc = *(FC_Stk.end() - 2);
+                    BACKPATCH(b_tc, NXQ);
+                    for (int i = 1; i <= 2; i++)
+                        stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
+                    value = boolLRTab[stateTop][boolMap[B_0_ID]];
+                    stateStk.push_back(value);
+                    placeStk.push_back(-1), TC_Stk.push_back(0), flagStk.push_back(B_1_ID),  FC_Stk.push_back(b_fc);
                     break;
+                }
                 // B_1 -> B ||
-                case 108:
+                case 108:{
+                    int b_tc = *(TC_Stk.end() - 2), b_fc = *(FC_Stk.end() - 2);
+                    BACKPATCH(b_fc, NXQ);
+                    for (int i = 1; i <= 2; i++)
+                        stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
+                    value = boolLRTab[stateTop][boolMap[B_0_ID]];
+                    stateStk.push_back(value);
+                    placeStk.push_back(-1), TC_Stk.push_back(b_tc), flagStk.push_back(B_1_ID),  FC_Stk.push_back(0);
                     break;
+                }
             }
         }
     }
@@ -188,6 +252,7 @@ bool Program(){
     }
 }
 int main(){
+    printf("%-5s %-5s %-30s %-30s %-30s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
     nowWord = lex.getWord(line, col);
     Program();
     return 0;
