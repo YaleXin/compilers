@@ -14,13 +14,24 @@
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
 // 符号栈  状态栈 PLACE栈 TC栈 FC栈
-vector<int>flagStk, stateStk, placeStk, TC_Stk, FC_Stk;
-int line, col, NXQ = 0;
+vector<int>flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
+// @line: 读头所在的行，@col: 读头所在的列 @NXQ: 下一条四元式的下标
+int line, col, NXQ = 1;
+typedef pair<int,int> P;
+
 bool status;
 typedef Quaternion Quat;
 vector<Quat>quats;
 Lex lex("D:\\my_cpp_workspace\\compilers\\curriculum_design\\test.cp", status);
 int cnt = 0;
+bool Program();
+bool Block();
+bool Stmts();
+bool Stmt();
+bool ifStmt();
+bool Type();
+P Bool();
+bool Expr();
 // 定义变量语句
 void variableDefinitions(){
     // 实际上严格的编译器，在定义变量的时候是要完成好多事情的，但是为了简化工作，
@@ -96,11 +107,116 @@ int entry(Result word, int tempIndex){
     return -1;
 }
 
-using namespace std;
+// 处理加减乘除
+bool handleCal(int type) {
+    int tIndex = newTemp();
+    tIndex = entry(nowWord, tIndex);
+    int E1_PLACE = *(placeStk.end() - 3), E2_PLACE = *(placeStk.end() - 1);
+    Quat q(type, E1_PLACE, E2_PLACE, tIndex);
+    quats.push_back(q);
+    NXQ++;
+    for (int i = 1; i <= 3; i++) stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back();
+    flagStk.push_back(E_ID);
+    int stateTop = *(stateStk.end() - 1);
+    int value = exprLRTab[stateTop][8];
+    if (value == -1){
+        return false;
+    }
+    stateStk.push_back(value);
+    placeStk.push_back(tIndex);
+    return true;
+}
 // 算术表达式
-bool Expr(){}
-// 布尔表达式
-bool Bool(){
+bool Expr(){
+    printf("%-5s %-5s %-30s %-30s %-50s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
+    Result leftWord = nowWord;
+    nowWord = lex.getWord(line, col);
+    if (nowWord.identifyId == EQL){
+        nowWord = lex.getWord(line, col);
+        copyWord = nowWord;
+    }
+    else return true;
+    stateStk.clear(), flagStk.clear(), placeStk.clear();
+    stateStk.push_back(0), flagStk.push_back(SEMIC), placeStk.push_back(-1);
+    print(nowWord.word, "");
+    if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
+        nowWord.identifyId = IDENTIFY;
+    bool acc = false, er = false;
+    int stateTop, flagTOP, value;
+    while(!acc && !er){
+        stateTop = *(stateStk.end() - 1);
+        // 查表
+        value = exprLRTab[stateTop][exprMap[nowWord.identifyId]];
+        if (value == -1){ 
+            er = true;
+            continue;    
+        }
+        else if (value == -2)acc = true;
+        // 移进
+        else if (value >= 0 && value < 100){
+            // printf("移进转%d\n", value);
+            stateStk.push_back(value), flagStk.push_back(nowWord.identifyId);
+            int index = entry(copyWord, -1);
+            placeStk.push_back(index);
+            print(nowWord.word, "移进");
+            nowWord = lex.getWord(line, col);
+            lastWord = copyWord;
+            copyWord = nowWord;
+            if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
+                nowWord.identifyId = IDENTIFY;
+        }
+        if (value >= 101 && value <= 200){
+            // printf("按照 %d 规约\n", value);
+            switch(value){
+                case 101: 
+                case 102: 
+                case 103: 
+                case 104: 
+                    if (!handleCal(value)){
+                        er = true;
+                        break;
+                    }
+                    print(nowWord.word, "规约");
+                    break;
+                // E -> (E)
+                case 105:{
+                    int E_PLACE = *(placeStk.end() - 2);
+                    for (int i = 1; i <= 3; i++) stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back();
+                    flagStk.push_back(E_ID);
+                    stateTop = *(stateStk.end() - 1);
+                    value = exprLRTab[stateTop][8];
+                    if (value == -1) {
+                        er = true;
+                        break;
+                    }
+                    placeStk.push_back(E_PLACE);
+                    stateStk.push_back(value);
+                    break;
+                // E -> i
+                }case 106:
+                    stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back();
+                    flagStk.push_back(E_ID);
+                    stateTop = *(stateStk.end() - 1);
+                    value = exprLRTab[stateTop][8];
+                    if (value == -1) {
+                        er = true;
+                        break;
+                    }
+                    stateStk.push_back(value);
+                    int index = entry(lastWord, -1);
+                    placeStk.push_back(index);
+                    print(nowWord.word, "规约");
+                    break;
+            }
+        }
+    }
+    stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
+    if (acc && !er)return true;
+    return false;
+}
+// 布尔表达式 返回待填的 E.TC E.FC
+P Bool(){
+    stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
     printf("%-5s %-5s %-30s %-30s %-50s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
     
     // 此处不应该使用 # ，因为实际上应该使用 )
@@ -135,7 +251,7 @@ bool Bool(){
                 nowWord.identifyId = IDENTIFY;
             print(nowWord.word, "移进");
         }// 规约
-        else if (value >= 102 && value < 108){
+        else if (value >= 102 && value <= 108){
             switch(value){
                 // B   -> B_0 B
                 case 102:{
@@ -179,12 +295,12 @@ bool Bool(){
                     NXQ += 2;
                     break;
                 }
-                // B   -> B < B
+                // B   -> i < i
                 case 105:
-                // B   -> B > B
+                // B   -> i > i
                 case 106:{
                     int type = value == 105 ? JLES : JGRT;
-                    int b1_place = *(placeStk.end() - 2), b2_place = *(placeStk.end() - 1);
+                    int b1_place = *(placeStk.end() - 3), b2_place = *(placeStk.end() - 1);
                     for (int i = 1; i <= 3; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
                     int stateTop = *(stateStk.end() - 1);
@@ -208,6 +324,7 @@ bool Bool(){
                     BACKPATCH(b_tc, NXQ);
                     for (int i = 1; i <= 2; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
+                    stateTop = *(stateStk.end() - 1);
                     value = boolLRTab[stateTop][boolMap[B_0_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(0), flagStk.push_back(B_1_ID),  FC_Stk.push_back(b_fc);
@@ -219,6 +336,7 @@ bool Bool(){
                     BACKPATCH(b_fc, NXQ);
                     for (int i = 1; i <= 2; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
+                    stateTop = *(stateStk.end() - 1);
                     value = boolLRTab[stateTop][boolMap[B_0_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(b_tc), flagStk.push_back(B_1_ID),  FC_Stk.push_back(0);
@@ -228,8 +346,16 @@ bool Bool(){
             print(nowWord.word, "规约");
         }
     }
-    if (acc && !er)return true;
-    return false;
+    if (acc && !er){
+        int E_TC = *(TC_Stk.end() - 1), E_FC = *(FC_Stk.end() - 1);
+        P p(E_TC, E_FC);
+        stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
+        return p;
+    } else{
+        P p(-1, -1);
+        stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
+        return p;
+    }
 }
 bool Type(){}
 // if (Bool) {} else {}
@@ -237,7 +363,13 @@ bool ifStmt(){
     nowWord = lex.getWord(line, col);
     if (nowWord.identifyId == LEFT){
         nowWord = lex.getWord(line, col);
-        Bool();
+        P p = Bool();
+        BACKPATCH(p.first, NXQ);
+        // 对应书本上的  C.CHAIN = E.FC
+        int c_chain = p.second;
+        // 此时完成了布尔表达式的翻译
+        nowWord = lex.getWord(line, col);
+        Block();
     }
 }
 // 单语句
@@ -250,6 +382,7 @@ bool Stmts(){
     Stmt();
     if (nowWord.identifyId == RIGHT_BIG)return true;
     if (nowWord.identifyId == IF)ifStmt();
+    else if (nowWord.identifyId == IDENTIFY)Expr();
 }
 // 代码块
 bool Block(){
@@ -278,6 +411,8 @@ bool Program() {
     }
 }
 int main(){
+    Quat q(-1,-1,-1,-1);
+    quats.push_back(q);
     nowWord = lex.getWord(line, col);
     Program();
     return 0;
