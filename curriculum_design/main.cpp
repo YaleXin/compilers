@@ -60,14 +60,14 @@ void BACKPATCH(int r, int t){
     }
 }
 
-void printStack(){
+void printStack(const string indexStr[], map<int, int>indexMap){
     int len = stateStk.size();
     for (int i = 0; i < len; i++) printf("%-2d ", stateStk[i]);
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
     
     len = flagStk.size();
     for (int i = 0; i < len; i++)
-        printf("%-2s ", boolIndexStr[boolIndexMap[flagStk[i]]].c_str());
+        printf("%-2s ", indexStr[indexMap[flagStk[i]]].c_str());
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
 
     len = placeStk.size();
@@ -83,10 +83,10 @@ void printStack(){
     len = FC_Stk.size();
     for (int i = 0; i < len; i++) printf("%-2d ", FC_Stk[i]);
 }
-void print(string nowStr, string action) {
+void print(string nowStr, string action, const string indexStr[], map<int, int>indexMap) {
     printf("%-5s ", nowStr.c_str());
     printf("%-5s ", action.c_str());
-    printStack();
+    printStack(indexStr, indexMap);
     printf("\n");
 }
 int newTemp(){ return cnt++; }
@@ -138,7 +138,7 @@ bool Expr(){
     else return true;
     stateStk.clear(), flagStk.clear(), placeStk.clear();
     stateStk.push_back(0), flagStk.push_back(SEMIC), placeStk.push_back(-1);
-    print(nowWord.word, "");
+    print(nowWord.word, "", exprIndexStr, exprIndexMap);
     if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
@@ -146,7 +146,7 @@ bool Expr(){
     while(!acc && !er){
         stateTop = *(stateStk.end() - 1);
         // 查表
-        value = exprLRTab[stateTop][exprMap[nowWord.identifyId]];
+        value = exprLRTab[stateTop][exprIndexMap[nowWord.identifyId]];
         if (value == -1){ 
             er = true;
             continue;    
@@ -158,12 +158,12 @@ bool Expr(){
             stateStk.push_back(value), flagStk.push_back(nowWord.identifyId);
             int index = entry(copyWord, -1);
             placeStk.push_back(index);
-            print(nowWord.word, "移进");
             nowWord = lex.getWord(line, col);
             lastWord = copyWord;
             copyWord = nowWord;
             if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
+            print(nowWord.word, "移进", exprIndexStr, exprIndexMap);
         }
         if (value >= 101 && value <= 200){
             // printf("按照 %d 规约\n", value);
@@ -171,13 +171,12 @@ bool Expr(){
                 case 101: 
                 case 102: 
                 case 103: 
-                case 104: 
+                case 104: {
                     if (!handleCal(value)){
                         er = true;
-                        break;
                     }
-                    print(nowWord.word, "规约");
                     break;
+                }
                 // E -> (E)
                 case 105:{
                     int E_PLACE = *(placeStk.end() - 2);
@@ -193,7 +192,7 @@ bool Expr(){
                     stateStk.push_back(value);
                     break;
                 // E -> i
-                }case 106:
+                }case 106:{
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back();
                     flagStk.push_back(E_ID);
                     stateTop = *(stateStk.end() - 1);
@@ -205,9 +204,10 @@ bool Expr(){
                     stateStk.push_back(value);
                     int index = entry(lastWord, -1);
                     placeStk.push_back(index);
-                    print(nowWord.word, "规约");
                     break;
+                }
             }
+            print(nowWord.word, "规约", exprIndexStr, exprIndexMap);
         }
     }
     stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
@@ -227,11 +227,11 @@ P Bool(){
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
     int stateTop, flagTOP, value, topTC, topFC, newFc, newTc, varIndex;
-    print(nowWord.word, "");
+    print(nowWord.word, "", boolIndexStr, boolIndexMap);
     while(!acc && !er){
         stateTop = *(stateStk.end() - 1);
         // 查表
-        value = boolLRTab[stateTop][boolMap[nowWord.identifyId]];
+        value = boolLRTab[stateTop][boolIndexMap[nowWord.identifyId]];
         if (value == -1){ 
             er = true;
             continue;    
@@ -249,7 +249,7 @@ P Bool(){
             copyWord = nowWord;
             if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
-            print(nowWord.word, "移进");
+            print(nowWord.word, "移进", boolIndexStr, boolIndexMap);
         }// 规约
         else if (value >= 102 && value <= 108){
             switch(value){
@@ -261,7 +261,7 @@ P Bool(){
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     int stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_ID]];
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
@@ -274,7 +274,7 @@ P Bool(){
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), FC_Stk.pop_back(), TC_Stk.pop_back();
                     int stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_ID]];
                     stateStk.push_back(value), flagStk.push_back(B_ID), placeStk.push_back(-1);
                     TC_Stk.push_back(newTc), FC_Stk.push_back(newFc);
                     break;
@@ -285,7 +285,7 @@ P Bool(){
                     *(flagStk.end() - 1) = B_ID, *(TC_Stk.end() - 1) = NXQ, *(FC_Stk.end() - 1) = NXQ + 1, *(placeStk.end() - 1) = entry(lastWord, -1);;
                     stateStk.pop_back();
                     stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_ID]];
                     varIndex = entry(lastWord, -1);
                     stateStk.push_back(value);
                     Quat q(JNZ, varIndex, -1, 0);
@@ -304,7 +304,7 @@ P Bool(){
                     for (int i = 1; i <= 3; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
                     int stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_ID]];
                     stateStk.push_back(value);
                     TC_Stk.push_back(NXQ), FC_Stk.push_back(NXQ + 1);
 
@@ -325,7 +325,7 @@ P Bool(){
                     for (int i = 1; i <= 2; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
                     stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_0_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_0_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(0), flagStk.push_back(B_1_ID),  FC_Stk.push_back(b_fc);
                     break;
@@ -337,13 +337,13 @@ P Bool(){
                     for (int i = 1; i <= 2; i++)
                         stateStk.pop_back(), flagStk.pop_back(), placeStk.pop_back(), TC_Stk.pop_back(), FC_Stk.pop_back();
                     stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolMap[B_0_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_0_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(b_tc), flagStk.push_back(B_1_ID),  FC_Stk.push_back(0);
                     break;
                 }
             }
-            print(nowWord.word, "规约");
+            print(nowWord.word, "规约", boolIndexStr, boolIndexMap);
         }
     }
     if (acc && !er){
