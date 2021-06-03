@@ -56,13 +56,13 @@ void printStack(){
     
     len = flagStk.size();
     for (int i = 0; i < len; i++)
-        printf("%-2s ", index2boolStr[boolMap[flagStk[i]]].c_str());
+        printf("%-2s ", boolIndexStr[boolIndexMap[flagStk[i]]].c_str());
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
 
     len = placeStk.size();
     for(int i = 0; i < len; i++)
         printf("%-5d ", placeStk[i]);
-    for (int i = len; i <= 10; i++) printf("%-2s ", " ");
+    for (int i = len; i <= 7; i++) printf("%-5s ", " ");
     
     len = TC_Stk.size();
     for (int i = 0; i < len; i++) 
@@ -101,10 +101,12 @@ using namespace std;
 bool Expr(){}
 // 布尔表达式
 bool Bool(){
-
+    printf("%-5s %-5s %-30s %-30s %-50s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
+    
     // 此处不应该使用 # ，因为实际上应该使用 )
     // 作为结束标志（简单起见，布尔表达式中没有左右括号）
     stateStk.push_back(0), flagStk.push_back(RIGHT), placeStk.push_back(-1), TC_Stk.push_back(-1), FC_Stk.push_back(-1);
+    copyWord = nowWord;
     if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
@@ -125,6 +127,7 @@ bool Bool(){
             stateStk.push_back(value), flagStk.push_back(nowWord.identifyId);
             int index = entry(copyWord, -1);
             placeStk.push_back(index);
+            FC_Stk.push_back(-1),TC_Stk.push_back(-1);
             nowWord = lex.getWord(line, col);
             lastWord = copyWord;
             copyWord = nowWord;
@@ -164,10 +167,11 @@ bool Bool(){
                 case 104:{  
                     // 本应出栈再进栈 但是只有一个元素 直接修改栈顶即可
                     *(flagStk.end() - 1) = B_ID, *(TC_Stk.end() - 1) = NXQ, *(FC_Stk.end() - 1) = NXQ + 1, *(placeStk.end() - 1) = entry(lastWord, -1);;
-                    int stateTop = *(stateStk.end() - 1);
-                    *(stateStk.end() - 1) = boolLRTab[stateTop][boolMap[B_ID]];
-                    varIndex = entry(copyWord, -1);
-                    *(placeStk.end() - 1) = varIndex;
+                    stateStk.pop_back();
+                    stateTop = *(stateStk.end() - 1);
+                    value = boolLRTab[stateTop][boolMap[B_ID]];
+                    varIndex = entry(lastWord, -1);
+                    stateStk.push_back(value);
                     Quat q(JNZ, varIndex, -1, 0);
                     quats.push_back(q);
                     Quat q1(J, -1, -1, 0);
@@ -274,7 +278,6 @@ bool Program() {
     }
 }
 int main(){
-    printf("%-5s %-5s %-30s %-30s %-40s %-30s %-30s\n", "读头", "动作", "状态栈", "符号栈", "PLACE栈", "TC", "FC");
     nowWord = lex.getWord(line, col);
     Program();
     return 0;

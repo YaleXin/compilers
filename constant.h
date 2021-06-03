@@ -43,8 +43,10 @@ const int INT_LEN = 500, DBL_LEN = 500, NML_LEN = 9000, TMP_LEN = 90000;
 const int DO = 7, WHILE = 31, IF = 15, INT = 16, DBL = 8, CHAR = 3;
 const int LES = 45, GRT = 48, AND = 61, OR = 59;
 const int J = 0, JLES = 1, JGRT = 2, JNZ = 3;
-const string index2boolStr[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E"};
- map<int, int> boolMap = {{RIGHT, 0},  {IDENTIFY, 1}, {LES, 2},  {GRT, 3},
+const string index2boolStr[] = {"i", "+", "-", "*", "/", "(", ")", "#", "E", "<", ">", "{", "}"};
+map<int, int> boolMap = {{RIGHT, 0},  {IDENTIFY, 1}, {LES, 2},  {GRT, 3},
                            {AND, 4},    {OR, 5},       {S_ID, 6}, {B_ID, 7},
                            {B_0_ID, 8}, {B_1_ID, 9}};
+map<int, int>boolIndexMap = {{RIGHT, 0}, {IDENTIFY, 1}, {LES, 2}, {GRT, 3}, {AND, 4}, {OR, 5}, {S_ID, 6}, {B_ID, 7}, {B_0_ID, 8}, {B_1_ID, 9}};
+string boolIndexStr[] = {")", "i", "<", ">", "&&", "||", "S", "B", "B0", "B1"};
 #endif
