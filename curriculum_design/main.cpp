@@ -11,6 +11,7 @@
 #include "../constant.h"
 #include "../tempStructs.h"
 #include "../lex.v2.cpp"
+#define DEBUG
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
 // 符号栈  状态栈 PLACE栈 TC栈 FC栈
@@ -30,6 +31,7 @@ bool Stmts();
 bool Stmt();
 bool ifStmt();
 bool Type();
+void printQuats();
 P Bool();
 bool Expr();
 // 定义变量语句
@@ -84,10 +86,12 @@ void printStack(const string indexStr[], map<int, int>indexMap){
     for (int i = 0; i < len; i++) printf("%-2d ", FC_Stk[i]);
 }
 void print(string nowStr, string action, const string indexStr[], map<int, int>indexMap) {
-    printf("%-5s ", nowStr.c_str());
-    printf("%-5s ", action.c_str());
-    printStack(indexStr, indexMap);
-    printf("\n");
+    #ifdef DEBUG
+        printf("%-5s ", nowStr.c_str());
+        printf("%-5s ", action.c_str());
+        printStack(indexStr, indexMap);
+        printf("\n");
+    #endif
 }
 int newTemp(){ return cnt++; }
 /**
@@ -210,6 +214,11 @@ bool Expr(){
             print(nowWord.word, "规约", exprIndexStr, exprIndexMap);
         }
     }
+    // 完成赋值操作
+    int index = entry(leftWord, -1);
+    Quat q(EQL, *(placeStk.end() - 1), -1, index);
+    quats.push_back(q);
+    NXQ++;
     stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(), FC_Stk.clear();
     if (acc && !er)return true;
     return false;
@@ -359,17 +368,48 @@ P Bool(){
 }
 bool Type(){}
 // if (Bool) {} else {}
+// 目前能力有限，假如 抽到的 if 语句是嵌套的，则不做复合语句
+// 目前先以 复合语句来
 bool ifStmt(){
     nowWord = lex.getWord(line, col);
     if (nowWord.identifyId == LEFT){
         nowWord = lex.getWord(line, col);
         P p = Bool();
+        // 回填真出口
         BACKPATCH(p.first, NXQ);
-        // 对应书本上的  C.CHAIN = E.FC
-        int c_chain = p.second;
+        // 布尔表达式的假出口
+        int boolFC = p.second;
+
+        
         // 此时完成了布尔表达式的翻译
         nowWord = lex.getWord(line, col);
         Block();
+        
+        // 回填假出口
+        BACKPATCH(boolFC, NXQ);
+        
+        nowWord = lex.getWord(line, col);
+        if (nowWord.identifyId == ELSE){
+            // 执行完 条件为真的代码块后，需要来一条指令，
+            // 跳过 else 后面的代码块
+            Quat q(J, -1, -1, 0);
+            quats.push_back(q);
+            // 记下 q(J, -1, -1, 0); 所在下标，过会需要进行回填
+            int this_NXQ = NXQ;
+
+            NXQ++;
+            nowWord = lex.getWord(line, col);
+            Block();
+
+            Quat q1(J, -1, -1, NXQ + 1);
+            quats.push_back(q1);
+            // 回填
+            quats[this_NXQ].t = NXQ + 1;
+            NXQ++; 
+        } else{
+            // 如果 if 后面不带 else
+            // 就啥也不做
+        }
     }
 }
 // 单语句
@@ -383,6 +423,10 @@ bool Stmts(){
     if (nowWord.identifyId == RIGHT_BIG)return true;
     if (nowWord.identifyId == IF)ifStmt();
     else if (nowWord.identifyId == IDENTIFY)Expr();
+    if (nowWord.identifyId == SEMIC){
+        nowWord = lex.getWord(line, col);
+        Stmts();
+    }
 }
 // 代码块
 bool Block(){
@@ -390,6 +434,7 @@ bool Block(){
         nowWord = lex.getWord(line, col);
         Stmts();
     }
+    // 右大括号
     if (nowWord.identifyId == RIGHT_BIG){
         return true;
     }
@@ -410,10 +455,50 @@ bool Program() {
         }
     }
 }
+void printQuats(){
+    // 词法分析器中保存的几张表要拿出来了
+    vector<string> idtfTab =  lex.getIdtfTab();
+    vector<int>intTab = lex.getIntTab();
+    vector<double>dblTab = lex.getDblTab();
+
+    for (int i = 1; i < NXQ; i++){
+        Quat q = quats[i];
+        int qOp = q.op;
+        string src1Str = "-", src2Str = "-", dstStr = "-";
+        // srcStr 记录的都是入口地址信息
+        
+        // 整型常量
+            if (q.arg1 >= 0 && q.arg1 < INT_LEN)src1Str = to_string(intTab[q.arg1]);
+            else if (q.arg1 >= INT_LEN && q.arg1 < INT_LEN + DBL_LEN)src1Str = to_string(dblTab[q.arg1 - INT_LEN]);
+            // 普通变量
+            else if (q.arg1 >= INT_LEN + DBL_LEN && q.arg1 < INT_LEN + DBL_LEN + NML_LEN)
+                src1Str = idtfTab[q.arg1 - INT_LEN - DBL_LEN];
+            // 临时变量
+            else  if(q.arg1 >= 10000) src1Str = "T" + to_string(q.arg1 - 10000);
+
+            if (q.arg2 >= 0 && q.arg2 < INT_LEN)src2Str = to_string(intTab[q.arg2]);
+            else if (q.arg2 >= INT_LEN && q.arg2 < INT_LEN + DBL_LEN)src2Str = to_string(dblTab[q.arg2 - INT_LEN]);
+            else if (q.arg2 >= INT_LEN + DBL_LEN && q.arg2 < INT_LEN + DBL_LEN + NML_LEN)
+                src2Str = idtfTab[q.arg2 - INT_LEN - DBL_LEN];
+            else  if(q.arg2 >= 10000) src2Str = "T" + to_string(q.arg2 - 10000);
+            if (qOp >= 1 && qOp <= 5){
+                dstStr = to_string(q.t);
+            } else{
+                if (q.t < INT_LEN)dstStr = to_string(intTab[q.t]);
+                else if (q.t >= INT_LEN && q.t < INT_LEN + DBL_LEN)dstStr = to_string(dblTab[q.t - INT_LEN]);
+                else if (q.t >= INT_LEN + DBL_LEN && q.t < INT_LEN + DBL_LEN + NML_LEN)
+                    dstStr = idtfTab[q.t - INT_LEN - DBL_LEN];
+                else dstStr = "T" + to_string(q.t - 10000);
+            }
+            
+            printf("%-3d: (%-6s, %-6s, %-6s, %-6s)\n", i, opMap[qOp].c_str(), src1Str.c_str(), src2Str.c_str(), dstStr.c_str());
+    }
+}
 int main(){
     Quat q(-1,-1,-1,-1);
     quats.push_back(q);
     nowWord = lex.getWord(line, col);
     Program();
+    printQuats();
     return 0;
 }

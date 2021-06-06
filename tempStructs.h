@@ -41,6 +41,7 @@ enum IdentifyType {
 // ËÄÔªÊ½
 struct Quaternion {
     int op, arg1, arg2, t;
+    Quaternion(){}
     Quaternion(int _op, int _arg1, int _arg2, int _t){op = _op, arg1 = _arg1, arg2 = _arg2, t = _t;}
 };
 #endif  
