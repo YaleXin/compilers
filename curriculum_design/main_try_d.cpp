@@ -457,18 +457,38 @@ bool ifStmt() {
 }
 // 单语句
 bool Stmt() {
-    if (nowWord.identifyId == SEMIC) return true;
+    if (nowWord.identifyId == SEMIC) {
+        nowWord = lex.getWord(line, col);
+        return true;
+    }
     if (nowWord.identifyId == INT || nowWord.identifyId == DBL ||
-        nowWord.identifyId == CHAR)
-        variableDefinitions();
-    else if (nowWord.identifyId == IF)
+        nowWord.identifyId == CHAR){
+            variableDefinitions();
+            nowWord = lex.getWord(line, col);
+            return true;
+        }
+        
+    else if (nowWord.identifyId == IF){
         ifStmt();
-    else if (nowWord.identifyId == IDENTIFY)
+        nowWord = lex.getWord(line, col);
+        return true;
+    }
+    else if (nowWord.identifyId == IDENTIFY){
         Expr();
-    else if (nowWord.identifyId == WHILE)
+        nowWord = lex.getWord(line, col);
+        return true;
+    }
+    else if (nowWord.identifyId == WHILE){
         whileStmt();
-    else if(nowWord.identifyId == DO)
+        nowWord = lex.getWord(line, col);
+        return true;
+    }
+        
+    else if(nowWord.identifyId == DO){
         doWhileStmt();
+        nowWord = lex.getWord(line, col);
+        return true;
+    }
 }
 bool doWhileStmt(){
     int this_NXQ = NXQ;
@@ -505,13 +525,7 @@ bool whileStmt() {
 // 多语句
 bool Stmts() {
     Stmt();
-    if (nowWord.identifyId == RIGHT_BIG) 
-        return true;
-
-    if (nowWord.identifyId == SEMIC) {
-        nowWord = lex.getWord(line, col);
-        Stmts();
-    }
+    if (nowWord.identifyId != RIGHT_BIG)Stmts();
 }
 stack<bool>st;
 // 代码块
@@ -520,28 +534,7 @@ bool Block() {
         st.push(true);
         nowWord = lex.getWord(line, col);
         Stmts();
-        // 右大括号，有可能是当前的代码块结束，也有可能是尚未结束
-        // 考虑一种情况 
-        /*
-                    {
-                {
-
-            }
-        }
-        */
-        /* if (nowWord.identifyId == RIGHT_BIG){
-            st.pop();
-            if (st.empty())return true;
-            nowWord = lex.getWord(line, col);
-            Stmts();
-        } */
-    }
-    if (nowWord.identifyId == RIGHT_BIG){
         nowWord = lex.getWord(line, col);
-        st.pop();
-        return true;
-    } else{
-        Stmts();
     }
 }
 // C语言程序

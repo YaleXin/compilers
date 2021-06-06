@@ -11,5 +11,12 @@ void main(){
 		num2 = num1 * 10;
 	}
 	
-	
+while(num1 < num2){
+		num3 = num3 + 5;
+	}
+
+	do{
+		num3 = num3 + 3 * num1 - num3 / 7;
+		num2 = num2 + 2;
+	}while(num1 < num2);
 }
