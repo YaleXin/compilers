@@ -12,7 +12,7 @@
 #include "../constant.h"
 #include "../lex.v2.cpp"
 #include "../tempStructs.h"
-#define DEBUG
+// #define DEBUG
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
 // 符号栈  状态栈 PLACE栈 TC栈 FC栈
@@ -470,22 +470,24 @@ bool Stmt() {
         
     else if (nowWord.identifyId == IF){
         ifStmt();
-        nowWord = lex.getWord(line, col);
+        // nowWord = lex.getWord(line, col);
         return true;
     }
     else if (nowWord.identifyId == IDENTIFY){
         Expr();
+        // 读取分号后面的语句
         nowWord = lex.getWord(line, col);
         return true;
     }
     else if (nowWord.identifyId == WHILE){
         whileStmt();
-        nowWord = lex.getWord(line, col);
+        // nowWord = lex.getWord(line, col);
         return true;
     }
         
     else if(nowWord.identifyId == DO){
         doWhileStmt();
+        // 将 while(); 的右括号读取
         nowWord = lex.getWord(line, col);
         return true;
     }
@@ -496,7 +498,18 @@ bool doWhileStmt(){
     if (nowWord.identifyId == LEFT_BIG){
         Block();
         int a;
-
+        if (nowWord.identifyId == WHILE){
+            nowWord = lex.getWord(line, col);
+            if (nowWord.identifyId == LEFT){
+                nowWord = lex.getWord(line, col);
+                P p = Bool();
+                int e_TC = p.first, e_FC = p.second;
+                // 使用 this_NXQ 回填 真出口
+                BACKPATCH(e_TC, this_NXQ);
+                // 使用 NXQ 回填假出口
+                BACKPATCH(e_FC, NXQ);
+            }
+        }
     }
 }
 bool whileStmt() {
