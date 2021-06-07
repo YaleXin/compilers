@@ -108,7 +108,7 @@ class Lex {
         int index =
             lower_bound(reservedWords, reservedWords + WORDS_LEN, word) -
             reservedWords;
-        if (index < WORDS_LEN)
+        if (index <= WORDS_LEN)
             index = reservedWords[index] == word ? index : -1;
         return index;
     }
