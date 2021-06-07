@@ -21,8 +21,7 @@ vector<string> identifyTable;
 const int EOF_ID = -2021;
 bool status;
 int line, col;
-Lex lex("D:\\my_cpp_workspace\\compilers\\exp1\\test.cp", status, 
-intConstants, doubleConstants, stringConstants, identifyTable);
+Lex lex("D:\\my_cpp_workspace\\compilers\\exp1\\test.cp", status);
 int main(){
     Result nowWord("", -1);
     while (1) {
