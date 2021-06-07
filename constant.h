@@ -41,7 +41,7 @@ const int REAL_CONSTANTS = 34, EQL = 53, SEMIC = 38;
 const int ACC = 0, E_ID = 101, S_ID = 101, B_ID = 102, B_0_ID = 103,
           B_1_ID = 104;
 const int INT_LEN = 500, DBL_LEN = 500, NML_LEN = 9000, TMP_LEN = 90000;
-const int DO = 7, ELSE = 9, WHILE = 31, IF = 15, INT = 16, DBL = 8, CHAR = 3, VOID = 29;
+const int DO = 7, ELSE = 9, WHILE = 31, IF = 15, INT = 16, DBL = 8, CHAR = 3, VOID = 29, FOR = 13;
 const int LES = 45, GRT = 48, AND = 61, OR = 59;
 const int J = 1, JLES = 2, JGRT = 3, JNZ = 4;
 map<int, string> opMap = {{0, "?"},     {J, "j"},     {JLES, "j<"},

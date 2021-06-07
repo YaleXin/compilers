@@ -33,6 +33,7 @@ bool Stmt();
 bool ifStmt();
 bool whileStmt();
 bool doWhileStmt();
+bool forStmt();
 bool Type();
 void printQuats();
 P Bool();
@@ -470,7 +471,6 @@ bool Stmt() {
         
     else if (nowWord.identifyId == IF){
         ifStmt();
-        // nowWord = lex.getWord(line, col);
         return true;
     }
     else if (nowWord.identifyId == IDENTIFY){
@@ -481,7 +481,6 @@ bool Stmt() {
     }
     else if (nowWord.identifyId == WHILE){
         whileStmt();
-        // nowWord = lex.getWord(line, col);
         return true;
     }
         
@@ -489,6 +488,10 @@ bool Stmt() {
         doWhileStmt();
         // 将 while(); 的右括号读取
         nowWord = lex.getWord(line, col);
+        return true;
+    }
+    else if (nowWord.identifyId == FOR){
+        forStmt();
         return true;
     }
 }
@@ -534,6 +537,61 @@ bool whileStmt() {
             BACKPATCH(e_FC, NXQ);
         }
     }
+}
+/*
+对于 for(exp1;exp2;exp3){doSomething}
+exp1 我愿称之为 初始化循环变量
+exp2 我愿称之为 测试循环条件
+exp3 我愿称之为 更新循环变量
+doSomething 我愿称之为 循环主体
+将上述文法
+翻译成
+        exp1
+test:   exp2
+        真出口跳至 sth
+        假出口跳至 exit
+change: exp3
+        j test
+sth:    doSomething
+        j change
+exit:
+*/
+bool forStmt(){
+    // 将 "for" 读取
+    nowWord = lex.getWord(line, col);
+    // 将左括号读取
+    nowWord = lex.getWord(line, col);
+    // for(;;) 中 第一个分号之前的语句
+    Expr();
+    nowWord = lex.getWord(line, col);
+    // 更新循环变量后需要无条件跳转到这里检查是否继续执行循环
+    int test_NXQ = NXQ;
+    P p = Bool();
+    nowWord = lex.getWord(line, col);
+    int e_TC = p.first, e_FC = p.second;
+    // 循环体翻译完后，需要无条件跳转到这里更新循环变量
+    int change_NXQ = NXQ;
+    // for(;;) 中 第二个分号之后的语句
+    Expr();
+    Quat j2test(J, -1, -1, test_NXQ);
+    quats.push_back(j2test);
+    NXQ++;
+
+    int sth_NXQ = NXQ;
+    // 将右括号读取
+    nowWord = lex.getWord(line, col);
+
+
+    // 回填真出口
+    BACKPATCH(e_TC, sth_NXQ);
+    // 翻译循环主体
+    Block();
+    // 无条件跳至 更新循环变量
+    Quat j2change(J, -1, -1, change_NXQ);
+    quats.push_back(j2change);
+    NXQ++;
+    // 回填假出口
+    BACKPATCH(e_FC, NXQ);
 }
 // 多语句
 bool Stmts() {
