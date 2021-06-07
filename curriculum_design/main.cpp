@@ -12,11 +12,11 @@
 #include "../constant.h"
 #include "../lex.v2.cpp"
 #include "../tempStructs.h"
-// #define DEBUG
+#define DEBUG
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
 // 符号栈  状态栈 PLACE栈 TC栈 FC栈
-vector<int> flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
+// vector<int> flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
 // @line: 读头所在的行，@col: 读头所在的列 @NXQ: 下一条四元式的下标
 int line, col, NXQ = 1;
 typedef pair<int, int> P;
@@ -67,7 +67,8 @@ void BACKPATCH(int r, int t) {
     }
 }
 
-void printStack(const string indexStr[], map<int, int> indexMap) {
+void printStack(const string indexStr[], map<int, int> indexMap,
+     const vector<int> stateStk, const vector<int> flagStk, const vector<int> placeStk, const vector<int> TC_Stk, const vector<int> FC_Stk) {
     int len = stateStk.size();
     for (int i = 0; i < len; i++) printf("%-2d ", stateStk[i]);
     for (int i = len; i <= 10; i++) printf("%-2s ", " ");
@@ -89,11 +90,11 @@ void printStack(const string indexStr[], map<int, int> indexMap) {
     for (int i = 0; i < len; i++) printf("%-2d ", FC_Stk[i]);
 }
 void print(string nowStr, string action, const string indexStr[],
-           map<int, int> indexMap) {
+           map<int, int> indexMap, const vector<int> stateStk, const vector<int> flagStk, const vector<int> placeStk, const vector<int> TC_Stk, const vector<int> FC_Stk) {
 #ifdef DEBUG
     printf("%-5s ", nowStr.c_str());
     printf("%-5s ", action.c_str());
-    printStack(indexStr, indexMap);
+    printStack(indexStr, indexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
     printf("\n");
 #endif
 }
@@ -119,7 +120,7 @@ int entry(Result word, int tempIndex) {
 }
 
 // 处理加减乘除
-bool handleCal(int type) {
+bool handleCal(int type, vector<int>&placeStk, vector<int>&stateStk, vector<int>&flagStk) {
     int tIndex = newTemp();
     tIndex = entry(nowWord, tIndex);
     int E1_PLACE = *(placeStk.end() - 3), E2_PLACE = *(placeStk.end() - 1);
@@ -140,6 +141,7 @@ bool handleCal(int type) {
 }
 // 算术表达式
 bool Expr() {
+    vector<int> flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
     printf("%-5s %-5s %-30s %-30s %-50s %-30s %-30s\n", "读头", "动作",
            "状态栈", "符号栈", "PLACE栈", "TC", "FC");
     Result leftWord = nowWord;
@@ -151,7 +153,7 @@ bool Expr() {
         return true;
     stateStk.clear(), flagStk.clear(), placeStk.clear();
     stateStk.push_back(0), flagStk.push_back(SEMIC), placeStk.push_back(-1);
-    print(nowWord.word, "", exprIndexStr, exprIndexMap);
+    print(nowWord.word, "", exprIndexStr, exprIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
     if (nowWord.identifyId == IDENTIFY || nowWord.identifyId == INT_CONSTANTS)
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
@@ -177,7 +179,7 @@ bool Expr() {
             if (nowWord.identifyId == IDENTIFY ||
                 nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
-            print(nowWord.word, "移进", exprIndexStr, exprIndexMap);
+            print(nowWord.word, "移进", exprIndexStr, exprIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
         }
         if (value >= 101 && value <= 200) {
             // printf("按照 %d 规约\n", value);
@@ -186,7 +188,7 @@ bool Expr() {
                 case 102:
                 case 103:
                 case 104: {
-                    if (!handleCal(value)) {
+                    if (!handleCal(value, placeStk, stateStk, flagStk)) {
                         er = true;
                     }
                     break;
@@ -225,7 +227,7 @@ bool Expr() {
                     break;
                 }
             }
-            print(nowWord.word, "规约", exprIndexStr, exprIndexMap);
+            print(nowWord.word, "规约", exprIndexStr, exprIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
         }
     }
     // 完成赋值操作
@@ -240,6 +242,7 @@ bool Expr() {
 }
 // 布尔表达式 返回待填的 E.TC E.FC
 P Bool() {
+    vector<int> flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
     stateStk.clear(), flagStk.clear(), placeStk.clear(), TC_Stk.clear(),
         FC_Stk.clear();
     printf("%-5s %-5s %-30s %-30s %-50s %-30s %-30s\n", "读头", "动作",
@@ -254,7 +257,7 @@ P Bool() {
         nowWord.identifyId = IDENTIFY;
     bool acc = false, er = false;
     int stateTop, flagTOP, value, topTC, topFC, newFc, newTc, varIndex;
-    print(nowWord.word, "", boolIndexStr, boolIndexMap);
+    print(nowWord.word, "", boolIndexStr, boolIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
     while (!acc && !er) {
         stateTop = *(stateStk.end() - 1);
         // 查表
@@ -277,7 +280,7 @@ P Bool() {
             if (nowWord.identifyId == IDENTIFY ||
                 nowWord.identifyId == INT_CONSTANTS)
                 nowWord.identifyId = IDENTIFY;
-            print(nowWord.word, "移进", boolIndexStr, boolIndexMap);
+            print(nowWord.word, "移进", boolIndexStr, boolIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
         }  // 规约
         else if (value >= 102 && value <= 108) {
             switch (value) {
@@ -392,7 +395,7 @@ P Bool() {
                     break;
                 }
             }
-            print(nowWord.word, "规约", boolIndexStr, boolIndexMap);
+            print(nowWord.word, "规约", boolIndexStr, boolIndexMap, stateStk, flagStk, placeStk, TC_Stk, FC_Stk);
         }
     }
     if (acc && !er) {
