@@ -304,6 +304,7 @@ P Bool() {
                 // B   -> B_1 B
                 case 103: {
                     newFc = *(FC_Stk.end() - 1);
+                    // 并链 真出口
                     newTc = MERG(*(TC_Stk.end() - 2), *(TC_Stk.end() - 1));
                     stateStk.pop_back(), flagStk.pop_back(),
                         placeStk.pop_back(), FC_Stk.pop_back(),
@@ -376,7 +377,7 @@ P Bool() {
                     value = boolLRTab[stateTop][boolIndexMap[B_0_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(0),
-                        flagStk.push_back(B_1_ID), FC_Stk.push_back(b_fc);
+                        flagStk.push_back(B_0_ID), FC_Stk.push_back(b_fc);
                     break;
                 }
                 // B_1 -> B ||
@@ -388,7 +389,7 @@ P Bool() {
                             placeStk.pop_back(), TC_Stk.pop_back(),
                             FC_Stk.pop_back();
                     stateTop = *(stateStk.end() - 1);
-                    value = boolLRTab[stateTop][boolIndexMap[B_0_ID]];
+                    value = boolLRTab[stateTop][boolIndexMap[B_1_ID]];
                     stateStk.push_back(value);
                     placeStk.push_back(-1), TC_Stk.push_back(b_tc),
                         flagStk.push_back(B_1_ID), FC_Stk.push_back(0);
@@ -413,8 +414,7 @@ P Bool() {
 }
 bool Type() {}
 // if (Bool) {} else {}
-// 目前能力有限，假如 抽到的 if 语句是嵌套的，则不做复合语句
-// 目前先以 复合语句来
+// 目前发现的BUG if(a||b<d){}
 bool ifStmt() {
     nowWord = lex.getWord(line, col);
     if (nowWord.identifyId == LEFT) {
