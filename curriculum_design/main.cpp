@@ -9,18 +9,23 @@
 #include <map>
 #include <vector>
 #include <stack>
+#include <set>
 #include "../constant.h"
 #include "../lex.v2.cpp"
 #include "../tempStructs.h"
 #define DEBUG
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
-// 符号栈  状态栈 PLACE栈 TC栈 FC栈
-// vector<int> flagStk, stateStk, placeStk, TC_Stk, FC_Stk, chainStk;
+
 // @line: 读头所在的行，@col: 读头所在的列 @NXQ: 下一条四元式的下标
 int line, col, NXQ = 1;
 typedef pair<int, int> P;
-
+// 存放跳转类型指令的地址
+set<int>addressSet;
+// 将地址映射成标号
+map<int, string>address2label;
+// 目标代码集合
+vector<vector<string>>targetCode;
 bool status;
 typedef Quaternion Quat;
 vector<Quat> quats;
@@ -36,6 +41,10 @@ bool doWhileStmt();
 bool forStmt();
 bool Type();
 void printQuats();
+void quata2targetCode(int, string, string, string);
+void preTargetCode();
+void subTargetCode();
+void printTargetCode();
 P Bool();
 bool Expr();
 // 定义变量语句
@@ -628,10 +637,22 @@ bool Program() {
     }
 }
 void printQuats() {
-    // 词法分析器中保存的几张表要拿出来了
     vector<string> idtfTab = lex.getIdtfTab();
     vector<int> intTab = lex.getIntTab();
     vector<double> dblTab = lex.getDblTab();
+
+    for (int i = 1; i < NXQ; i++){
+        Quat q = quats[i];
+        int qOp = q.op;
+        // 将地址放进集合里边
+        if (qOp <= 5)addressSet.insert(q.t);
+    }
+
+    int index = 1;
+    for (set<int>::iterator it = addressSet.begin(); it != addressSet.end(); it++) {
+        address2label[*(it)] = "L" + to_string(index);
+        index++;
+    }
 
     for (int i = 1; i < NXQ; i++) {
         Quat q = quats[i];
@@ -674,10 +695,127 @@ void printQuats() {
             else
                 dstStr = "T" + to_string(q.t - 10000);
         }
-
+        quata2targetCode(i, src1Str, src2Str, dstStr);
         printf("%-3d: (%-6s, %-6s, %-6s, %-6s)\n", i, opMap[qOp].c_str(),
                src1Str.c_str(), src2Str.c_str(), dstStr.c_str());
     }
+    vector<string>item = {address2label[*(addressSet.rbegin())] + ":"};
+    targetCode.push_back(item);
+}
+// 将一个四元式翻译成若干条8086汇编
+void quata2targetCode(int th, string src1, string src2, string dst){
+    if (addressSet.count(th) > 0){
+        // 生成 Lx:
+        vector<string>item = {address2label[th] + ":"};
+        targetCode.push_back(item);
+    }
+    Quat q = quats[th];
+    int op = q.op;
+    switch(op){
+        // j
+        case J: {
+            vector<string> item = {"JMP", address2label[q.t]};
+            targetCode.push_back(item);
+            break;
+        }
+        // j<
+        case JLES:{
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"MOV", "BX,", src2};
+            vector<string>item3 = {"CMP", "AX,", "BX"};
+            vector<string>item4 = {"JC", address2label[q.t]};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            targetCode.push_back(item3), targetCode.push_back(item4);
+            break;
+        }
+        // j>
+        case JGRT:{
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"MOV", "BX,", src2};
+            // 不使用   CMP AX, BX 
+            //          JNC
+            //   是因为
+            // 假如 a == b, 则 CMP a, b 将不会产生进位，不满足 j> 的要求
+            vector<string>item3 = {"CMP", "BX,", "AX"};
+            vector<string>item4 = {"JC", address2label[q.t]};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            targetCode.push_back(item3), targetCode.push_back(item4);
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            targetCode.push_back(item3), targetCode.push_back(item4);
+            break;
+        }
+        // jnz
+        case JNZ:{
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"CMP", "AX,", "0"};
+            vector<string>item3 = {"JNZ", address2label[q.t]};
+            targetCode.push_back(item1), targetCode.push_back(item2), targetCode.push_back(item3);
+            break;
+        }
+        case OP_ADD:
+        case OP_SUB:{
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"MOV", "BX,", src2};
+            vector<string>item3 = {op == OP_ADD ? "ADD" : "SUB", "AX,", "BX"};
+            vector<string>item4 = {"MOV", dst + ",", "AX"};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            targetCode.push_back(item3), targetCode.push_back(item4);
+            break;
+        }
+        case OP_MUL:
+        case OP_DIV: {
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"MOV", "BX,", src2};
+            vector<string>item3 = {op == OP_MUL ? "MUL" : "DIV", "BX"};
+            vector<string>item4 = {"MOV", dst + ",", "AX"};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            targetCode.push_back(item3), targetCode.push_back(item4);
+            break;
+        }
+        // =
+        case EQL:{
+            vector<string>item1 = {"MOV", "AX,", src1};
+            vector<string>item2 = {"MOV", dst + ",", "AX"};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            break;
+        }
+        default:{
+            vector<string>item1 = {"UNKNOWN"};
+            targetCode.push_back(item1);
+        }
+    }
+}
+void preTargetCode(){
+    printf("DATA SEGMENT\n");
+    vector<string>  idtfTab =  lex.getIdtfTab();
+    int idtfTabLen = idtfTab.size();
+    for (int i = 0; i < idtfTabLen; i++)
+        printf("\t%s DW 0\n", idtfTab[i].c_str());
+    for (int i = 0; i < cnt; i++)
+        printf("\tT%d DW 0\n", i);
+    printf("DATA ENDS\n");
+    printf("CODE SEGMENT\n");
+    printf("\tASSUME CS:CODE, DS:DATA\n");
+    printf("START:\n");
+    printf("\tMOV AX, DATA\n");
+    printf("\tMOV DS, AX\n");
+}
+void subTargetCode(){
+    printf("\tMOV AH, 4CH\n");
+    printf("\tINT 21H\n");
+    printf("CODE ENDS\n");
+    printf("END START\n");
+}
+void printTargetCode(){
+    preTargetCode();
+    int sz = targetCode.size();
+    for (int i = 0; i < sz; i++){
+        printf("\t");
+        for (int j = 0; j < targetCode[i].size(); j++)
+            printf("%-6s", targetCode[i][j].c_str());
+        printf("\n");
+    }
+    subTargetCode();
 }
 int main() {
     Quat q(-1, -1, -1, -1);
@@ -685,5 +823,18 @@ int main() {
     nowWord = lex.getWord(line, col);
     Program();
     printQuats();
+    printTargetCode();
     return 0;
 }
+/*
+
+
+void main(){
+    int t, a, b, c, d, e, f, x, y, z;
+    if(x>6){
+        x=6-2*3;
+    }else{
+        y=7+3*4;
+    }	
+}
+*/

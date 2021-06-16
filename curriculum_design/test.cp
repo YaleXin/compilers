@@ -1,11 +1,13 @@
+
 void main(){
-    int t, a, b, c, d, e, f, x, y, z;
-    while(a||b<d){
-        t  = 6 + 3;
-        if(x>t){
-            x = x - 2 * 3;
-        } else {
-            y = x + 3 * 4;
-         }
-    }
+   int num1, num2, num3, index;
+   num1 = 1;
+   num2 = 1;
+   index = 3;
+   while(index < 101){
+       num3 = num1 + num2;
+       num1 = num2;
+       num2 = num3;
+       index = index + 1;
+   }
 }
