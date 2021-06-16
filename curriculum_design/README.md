@@ -1,5 +1,7 @@
 `LR(1)`分析表来自于 [Vizdl](https://www.cnblogs.com/vizdl/) 的文章[LR(1)语法分析器生成器(生成Action表和Goto表)java实现(二)](https://www.cnblogs.com/vizdl/p/11331278.html)
 
+8086汇编代码中，将16进制数据转为10进制并输出的代码来自[汇编:把寄存器AX的十六进制数转换成十进制形式输出](https://blog.csdn.net/pfboy/article/details/1549942)
+
 非常感谢！
 
 ## C语言文法

@@ -787,6 +787,9 @@ void quata2targetCode(int th, string src1, string src2, string dst){
 }
 void preTargetCode(){
     printf("DATA SEGMENT\n");
+       printf("\tdivisors  DW 10000, 1000, 100, 10, 1\n");
+       printf("\tresults   DB 0,0,0,0,0,\"$\"   \n");
+       printf("\tcopyright db 'Welcome to use the compiler designed by Yalexin!$'\n");
     vector<string>  idtfTab =  lex.getIdtfTab();
     int idtfTabLen = idtfTab.size();
     for (int i = 0; i < idtfTabLen; i++)
@@ -799,10 +802,53 @@ void preTargetCode(){
     printf("START:\n");
     printf("\tMOV AX, DATA\n");
     printf("\tMOV DS, AX\n");
+    printf("\tCALL CP_FUNCT\n");
 }
 void subTargetCode(){
     printf("\tMOV AH, 4CH\n");
     printf("\tINT 21H\n");
+
+
+    printf("    PRINT_FUNCT PROC\n");
+    printf("        mov     si, offset divisors\n");
+    printf("        mov     di, offset results\n");                    
+    printf("        mov     cx,5  \n");
+    printf("aa:\n");
+    printf("        mov     dx,0           \n");
+    printf("        div     word ptr [si]   \n");
+    printf("        add     al,48          \n");
+    printf("        mov     byte ptr [di],al      \n"); 
+    printf("        inc     di               \n");                
+    printf("        add     si,2        \n");                  
+    printf("        mov     ax,dx  \n");                     
+    printf("        loop    aa\n");
+    printf("        mov     cx,4   \n");
+    printf("        mov     di, offset results\n");
+    printf("bb:\n");
+    printf("        cmp     byte ptr [di],'0'\n");
+    printf("        jne     print\n");
+    printf("        inc     di     \n");                     
+    printf("        loop    bb\n");
+    printf("print:\n");
+    printf("        mov     dx,di    \n");                  
+    printf("        mov     ah,9\n");
+    printf("        int     21h  \n"); 
+    printf("        mov ah,2\n");
+    printf("        mov dl,0DH\n");
+    printf("        int 21h\n");
+    printf("        mov dl,0AH\n");
+    printf("        INT 21H\n");
+    printf("        RET        \n");
+    printf("CP_FUNCT PROC         \n");
+    printf("        mov   DX, offset copyright\n");
+    printf("        mov ah, 9\n");
+    printf("        int  21h     \n");
+    printf("        mov ah,2\n");
+    printf("        mov dl,0DH\n");
+    printf("        int 21h\n");
+    printf("        mov dl,0AH\n");
+    printf("        INT 21H \n");         
+    printf("        RET\n");
     printf("CODE ENDS\n");
     printf("END START\n");
 }
