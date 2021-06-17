@@ -846,7 +846,7 @@ void subTargetCode(){
     printf("\tINT 21H\n");
 
 
-    printf("        PRINT_FUNCT PROC\n");
+    printf("PRINT_FUNCT PROC\n");
     printf("        mov     si, offset divisors\n");
     printf("        mov     di, offset results\n");                    
     printf("        mov     cx,5  \n");

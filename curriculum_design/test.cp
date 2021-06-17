@@ -1,6 +1,5 @@
-
 void main(){
-   int num1, num2, num3, index, max, max1, max2;
+   int num1, num2, num3, index;
    num1 = 1;
    num2 = 1;
    index = 3;
