@@ -13,7 +13,7 @@
 #include "../constant.h"
 #include "../lex.v2.cpp"
 #include "../tempStructs.h"
-#define DEBUG
+// #define DEBUG
 using namespace std;
 Result nowWord("", -1), copyWord("", -1), lastWord("", -1);
 
@@ -30,11 +30,12 @@ bool status;
 typedef Quaternion Quat;
 vector<Quat> quats;
 Lex lex("D:\\my_cpp_workspace\\compilers\\curriculum_design\\test.cp", status);
-int cnt = 0;
+int cnt = 0, labelCnt = 0;
 bool Program();
 bool Block();
 bool Stmts();
 bool Stmt();
+bool printStmt();
 bool ifStmt();
 bool whileStmt();
 bool doWhileStmt();
@@ -486,10 +487,16 @@ bool Stmt() {
         return true;
     }
     else if (nowWord.identifyId == IDENTIFY){
-        Expr();
-        // 读取分号后面的语句
-        nowWord = lex.getWord(line, col);
-        return true;
+        if (nowWord.word == "print"){
+            printStmt();
+            nowWord = lex.getWord(line, col);
+            return true;
+        }else {
+            Expr();
+            // 读取分号后面的语句
+            nowWord = lex.getWord(line, col);
+            return true;
+        }
     }
     else if (nowWord.identifyId == WHILE){
         whileStmt();
@@ -526,6 +533,27 @@ bool doWhileStmt(){
             }
         }
     }
+}
+// print(var) 语句
+bool printStmt(){
+    Result var("", -1);
+    nowWord = lex.getWord(line, col);
+    if (nowWord.identifyId == LEFT) {
+        var = lex.getWord(line, col);
+        if (var.identifyId == INT_CONSTANTS || var.identifyId == DBL_CONSTANTS ||
+            var.identifyId == IDENTIFY){
+            nowWord = lex.getWord(line, col);
+            if (nowWord.identifyId == RIGHT){
+                int index = entry(var, -1);
+                Quat q(OP_PRINT, -1, -1, index);
+                quats.push_back(q);
+                NXQ++;
+                nowWord = lex.getWord(line, col);
+                return true;
+            }
+        }
+    }
+    return true;
 }
 bool whileStmt() {
     // 先记下来，后面需要跳转到这里
@@ -699,8 +727,10 @@ void printQuats() {
         printf("%-3d: (%-6s, %-6s, %-6s, %-6s)\n", i, opMap[qOp].c_str(),
                src1Str.c_str(), src2Str.c_str(), dstStr.c_str());
     }
-    vector<string>item = {address2label[*(addressSet.rbegin())] + ":"};
-    targetCode.push_back(item);
+    if (labelCnt < addressSet.size()){
+        vector<string>item = {address2label[*(addressSet.rbegin())] + ":"};
+        targetCode.push_back(item);
+    }
 }
 // 将一个四元式翻译成若干条8086汇编
 void quata2targetCode(int th, string src1, string src2, string dst){
@@ -708,6 +738,7 @@ void quata2targetCode(int th, string src1, string src2, string dst){
         // 生成 Lx:
         vector<string>item = {address2label[th] + ":"};
         targetCode.push_back(item);
+        labelCnt++;
     }
     Quat q = quats[th];
     int op = q.op;
@@ -779,6 +810,12 @@ void quata2targetCode(int th, string src1, string src2, string dst){
             targetCode.push_back(item1), targetCode.push_back(item2);
             break;
         }
+        case OP_PRINT:{
+            vector<string>item1 = {"MOV", "AX,", dst};
+            vector<string>item2 = {"CALL", "PRINT_FUNCT"};
+            targetCode.push_back(item1), targetCode.push_back(item2);
+            break;
+        }
         default:{
             vector<string>item1 = {"UNKNOWN"};
             targetCode.push_back(item1);
@@ -809,7 +846,7 @@ void subTargetCode(){
     printf("\tINT 21H\n");
 
 
-    printf("    PRINT_FUNCT PROC\n");
+    printf("        PRINT_FUNCT PROC\n");
     printf("        mov     si, offset divisors\n");
     printf("        mov     di, offset results\n");                    
     printf("        mov     cx,5  \n");
@@ -826,10 +863,10 @@ void subTargetCode(){
     printf("        mov     di, offset results\n");
     printf("bb:\n");
     printf("        cmp     byte ptr [di],'0'\n");
-    printf("        jne     print\n");
+    printf("        jne     print_\n");
     printf("        inc     di     \n");                     
     printf("        loop    bb\n");
-    printf("print:\n");
+    printf("print_:\n");
     printf("        mov     dx,di    \n");                  
     printf("        mov     ah,9\n");
     printf("        int     21h  \n"); 
