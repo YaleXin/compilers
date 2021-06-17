@@ -249,8 +249,8 @@ END START
 
 使用`emu8086`调试上述代码如下：
 
-![1623897899901](D:\my_cpp_workspace\compilers\curriculum_design\p1)
+![1623897899901](p1)
 
 溢出了~~~
 
-![1623898061088](D:\my_cpp_workspace\compilers\curriculum_design\p2)
+![1623898061088](p2)
