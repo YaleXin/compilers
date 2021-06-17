@@ -1,15 +1,19 @@
 void main(){
-   int num1, num2, num3, index;
-   num1 = 1;
-   num2 = 1;
-   index = 3;
-   print(num1);
-   print(num2);
-   while(index < 50){
-       num3 = num1 + num2;
-       print(num3);
-       num1 = num2;
-       num2 = num3;
-       index = index + 1;
-   }
+    int t, a, b, c, d, e, f, x, y, z;
+    while(a&&b){
+        if(x>6){
+            x = 6 - 12 / 3;
+        }else{
+            y = 7 + 3 * 4;
+        }	
+    }
+    do{
+        x = 2 + x * 9;
+    } while (x<1000);
+    print(x);
+    for (a = 8; a < 100; a = a + 2){
+        x = x + 7 * 9;
+        b = 2 + 7 * b; 
+    }
+    print(b);
 }
